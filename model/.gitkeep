@@ -1,0 +1,2 @@
+# Keeps the model/ directory in git. Weights themselves are git-ignored (D13);
+# download_model.sh populates this directory at audit time.

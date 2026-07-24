@@ -1,0 +1,29 @@
+# --- Model weights: NEVER in git; fetched by download_model.sh (D13) ---
+*.gguf
+model/*
+!model/.gitkeep
+
+# --- Student PII / local imports: NEVER in git (PRD privacy, D13) ---
+data/local/
+*.local.csv
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.env
+
+# --- SQLite / local databases ---
+*.db
+*.db-wal
+*.db-shm
+*.sqlite
+*.sqlite3
+
+# --- OS / editor noise ---
+.DS_Store
+.idea/
+.vscode/
+
+# NOTE: submission.json IS committed alongside REPORT.md (§8) — do not ignore it.
