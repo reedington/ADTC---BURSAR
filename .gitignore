@@ -27,3 +27,6 @@ venv/
 .vscode/
 
 # NOTE: submission.json IS committed alongside REPORT.md (§8) — do not ignore it.
+
+# Generated dataset builds (regenerable from seed + gold)
+data/build/

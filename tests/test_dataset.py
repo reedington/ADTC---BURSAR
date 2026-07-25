@@ -1,6 +1,7 @@
+import os
 import random
 import pytest
-from bursa_eval.dataset import near_dup_signature, split
+from bursa_eval.dataset import near_dup_signature, split, build, freeze, load_manifest
 from bursa_eval.models import GoldCase
 from bursa_eval.synth.templates import TEMPLATES
 
@@ -52,3 +53,22 @@ def test_realized_ratios_reasonable():
     golds = [_gold(f"g{i}", f"t{i}", f"STU-{i}") for i in range(20)]
     r = split(golds, base_seed=3)
     assert len(r["train"]) >= 10 and r["val"] and r["test"]
+
+
+def test_freeze_and_reload_manifest(tmp_path):
+    p = str(tmp_path / "manifest.json")
+    freeze({"train": ["a"], "val": ["b"], "test": ["c"]}, path=p,
+           base_seed=1, synth_config_hash="x", gold_count=3, synth_count=0)
+    m = load_manifest(p)
+    assert m["frozen"] and m["test_case_ids"] == ["c"] and m["val_case_ids"] == ["b"]
+
+
+def test_build_produces_splits_jsonl_and_coverage(tmp_path):
+    out = str(tmp_path / "build")
+    result = build(base_seed=5, n_synth=12, gold_dir="data/gold", out_dir=out)
+    assert result["gold"] == 3 and result["synth"] == 12
+    for name in ("train", "val", "test"):
+        assert os.path.exists(f"{out}/{name}.jsonl")
+    for name in ("val", "test"):            # synthetic (synth-*) never leaves train
+        assert all(not cid.startswith("synth-") for cid in result["assignment"][name])
+    assert "train" in result["coverage"]
