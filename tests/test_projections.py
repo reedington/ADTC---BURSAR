@@ -10,6 +10,7 @@ def _ev(db, **kw):
 
 
 def test_charge_balance_and_status(db, seeded_term_student_fee):
+    db.execute("INSERT INTO charges VALUES ('CHG-1','STU-1','FEE-TUITION','T1')")
     _ev(db, event_type=EventType.CHARGE_CREATED, charge_id="CHG-1", student_id="STU-1",
         fee_id="FEE-TUITION", amount_minor=5000000)
     assert proj.charge_billed(db, "CHG-1") == 5000000
@@ -22,6 +23,7 @@ def test_charge_balance_and_status(db, seeded_term_student_fee):
 
 
 def test_holder_credit(db, seeded_term_student_fee):
+    db.execute("INSERT INTO charges VALUES ('CHG-1','STU-1','FEE-TUITION','T1')")
     _ev(db, event_type=EventType.CREDIT_GRANT, holder="STU-1", amount_minor=1000000)
     assert proj.holder_credit(db, "STU-1") == 1000000
     _ev(db, event_type=EventType.CREDIT_APPLICATION, holder="STU-1", charge_id="CHG-1",

@@ -17,6 +17,7 @@ def test_transaction_round_trip(db):
 
 
 def test_live_events_excludes_reversed(db, seeded_term_student_fee):
+    db.execute("INSERT INTO charges VALUES ('CHG-1','STU-1','FEE-TUITION','T1')")
     e1 = repo.insert_ledger_event(db, LedgerEventInput(
         event_type=EventType.CHARGE_CREATED, charge_id="CHG-1", student_id="STU-1",
         fee_id="FEE-TUITION", amount_minor=5000000, actor="importer",
