@@ -49,13 +49,19 @@ CREATE TABLE proposals (
   transaction_id TEXT NOT NULL REFERENCES transactions(transaction_id),
   source TEXT NOT NULL, recommended_action TEXT NOT NULL,
   confidence REAL, explanation TEXT,
-  status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL
+  status TEXT NOT NULL DEFAULT 'pending', created_at TEXT NOT NULL, features TEXT
 );
 CREATE TABLE proposal_allocations (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   proposal_id TEXT NOT NULL REFERENCES proposals(proposal_id),
   student_id TEXT NOT NULL REFERENCES students(student_id),
   amount_minor INTEGER NOT NULL, reason_codes TEXT NOT NULL
+);
+CREATE TABLE student_aliases (
+  student_id TEXT NOT NULL REFERENCES students(student_id),
+  alias TEXT NOT NULL,
+  normalized_alias TEXT NOT NULL,
+  PRIMARY KEY (student_id, normalized_alias)
 );
 CREATE TABLE ledger_events (
   event_id INTEGER PRIMARY KEY AUTOINCREMENT,
