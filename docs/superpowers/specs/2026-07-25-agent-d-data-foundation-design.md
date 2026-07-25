@@ -83,7 +83,7 @@ Each reconciliation example is emitted in **both** formats.
 | `explanation` | `expected.rationale` |
 | `ambiguities` | scenario-derived (empty unless the template specifies) |
 
-`duplicate_blocked` cases produce **no app-format prompt** (they are blocked at import and never reach the model) — they train the import/dedup layer, not the model, and are excluded from `to_app_format`.
+`duplicate_blocked` cases are **excluded from BOTH renderers** (app-format *and* chat-format): duplicate handling is import-layer behavior that neither the app model nor the bare model should ever be trained to perform. They are blocked at import and never reach the model, so they train the import/dedup layer only.
 
 **`to_chat_format`** — a self-contained scenario in a single user turn, **no system prompt**, with a worked reasoning answer (the bare-model conversational format the hidden prompts hit).
 
@@ -113,7 +113,7 @@ Each reconciliation example is emitted in **both** formats.
 ## 8. Dependencies & handoffs
 
 - **General-enterprise 30% (D6):** the reconciliation 70% is produced here (both formats); the general 30% (summarization/drafting/analysis) is a **separate curated source consumed at training time (Agent T)**. It **must come from permissively-licensed sources (e.g. Apache-2.0 / MIT / CC-BY), with provenance recorded in the dataset report** — it ships in the public repo and Gate 2 audits provenance.
-- **Eval harness (sub-project 2):** consumes this schema. Carry-over: **pool-recall is computed over non-exact cases only** (deterministic short-circuits build no pool); pool truth = `case.pool_truth()`.
+- **Eval harness (sub-project 2):** consumes this schema. Carry-overs: **pool-recall is computed over non-exact cases only** (deterministic short-circuits build no pool; pool truth = `case.pool_truth()`); and **`duplicate_blocked` cases are evaluated at the pipeline level** by asserting the import/dedup layer blocks them (reference already present from replayed history), never through the model.
 - **Pidgin reviewer (D10):** a confirmed native speaker reviews Pidgin templates before mass generation.
 
 ## 9. Testing
