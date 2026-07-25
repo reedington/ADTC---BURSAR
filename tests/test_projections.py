@@ -29,3 +29,20 @@ def test_holder_credit(db, seeded_term_student_fee):
     _ev(db, event_type=EventType.CREDIT_APPLICATION, holder="STU-1", charge_id="CHG-1",
         amount_minor=400000)
     assert proj.holder_credit(db, "STU-1") == 600000
+
+
+def test_payer_history_live_only(db, seeded_term_student_fee):
+    from bursa import ledger, normalize
+    from bursa.models import CanonicalTransaction, LedgerEventInput, EventType
+    ledger.create_charge(db, "CHG-1", "STU-1", "FEE-TUITION", "T1", 5_000_000, "i", "f", "B")
+    repo.insert_transaction(db, CanonicalTransaction(transaction_id="TXN-1", source="bank_csv",
+        posted_at="2026-02-14T00:00:00+00:00", amount_minor=1_000_000, direction="credit",
+        payer_name="C N Okafor", dedup_hash="h1"))
+    ev = LedgerEventInput(event_type=EventType.ALLOCATION, transaction_id="TXN-1",
+        charge_id="CHG-1", student_id="STU-1", fee_id="FEE-TUITION", amount_minor=1_000_000,
+        actor="e", source="d", evidence_ref="TXN-1", decision_path="auto")
+    [aid] = ledger.post(db, "TXN-1", [ev], "e", "d", "TXN-1", "auto")
+    assert "STU-1" in proj.payer_history(db, normalize.normalize_name("C N Okafor"))
+    ledger.reverse(db, aid, "bursar", "wrong")
+    assert proj.payer_history(db, normalize.normalize_name("C N Okafor")) == set()
+

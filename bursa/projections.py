@@ -1,4 +1,5 @@
 from bursa import repository as repo
+from bursa import normalize as _normalize
 
 
 def _sum(rows, predicate) -> int:
@@ -46,3 +47,18 @@ def student_status(conn, student_id) -> str:
     if paid < billed:
         return "part_paid"
     return "cleared"
+
+
+def payer_history(conn, normalized_payer) -> set[str]:
+    """Students this payer has a LIVE (non-reversed) allocation for — derived, net of reversals."""
+    rows = conn.execute(
+        "SELECT e.student_id AS sid, t.payer_name AS payer FROM ledger_events e "
+        "JOIN transactions t ON e.transaction_id = t.transaction_id "
+        "WHERE e.event_type = 'allocation' AND e.student_id IS NOT NULL "
+        "AND e.event_id NOT IN (SELECT reverses_event_id FROM ledger_events "
+        "                       WHERE reverses_event_id IS NOT NULL)").fetchall()
+    out = set()
+    for r in rows:
+        if _normalize.normalize_name(r["payer"] or "") == normalized_payer and r["sid"]:
+            out.add(r["sid"])
+    return out
