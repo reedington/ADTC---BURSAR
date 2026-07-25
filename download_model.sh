@@ -9,15 +9,18 @@ mkdir -p "${MODEL_DIR}"
 
 MODEL_FILE="bursa-recon-1.7b-q4_k_m.gguf"
 MODEL_PATH="${MODEL_DIR}/${MODEL_FILE}"
-# TODO(Phase 3/4): public Hugging Face resolve URL of the released GGUF.
-MODEL_URL="TODO_HUGGINGFACE_GGUF_URL"
-# Checksum: leave EMPTY for trust-on-first-use (see fetch_verify). Never commit a placeholder.
+# Phase 2 / C2 verification uses the ZERO-SHOT Qwen3-1.7B Q4_K_M GGUF (exists today).
+# At Phase 3/4, repoint MODEL_URL to the fine-tuned Bursa-Recon GGUF (same output path).
+# The 0.6B C2-pivot baseline lives at:
+#   https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_K_M.gguf
+MODEL_URL="https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/main/Qwen3-1.7B-Q4_K_M.gguf"
+# Checksum: EMPTY = trust-on-first-use (see fetch_verify). Pin the real value after first run.
 MODEL_SHA256=""
 
 TOKENIZER_FILE="tokenizer.json"
 TOKENIZER_PATH="${MODEL_DIR}/${TOKENIZER_FILE}"
-# TODO(Phase 3/4): tokenizer.json published ALONGSIDE the GGUF (the Qwen3 tokenizer).
-TOKENIZER_URL="TODO_HUGGINGFACE_TOKENIZER_JSON_URL"
+# Qwen3-1.7B tokenizer (the fine-tuned model keeps the same tokenizer).
+TOKENIZER_URL="https://huggingface.co/Qwen/Qwen3-1.7B/resolve/main/tokenizer.json"
 TOKENIZER_SHA256=""
 
 # fetch_verify <url> <dest> <expected_sha256> <label>
@@ -49,17 +52,16 @@ fetch_verify() {
   fi
 }
 
-if [ "${MODEL_URL}" = "TODO_HUGGINGFACE_GGUF_URL" ]; then
-  echo "ERROR: MODEL_URL is not set. The GGUF is published in Phase 3/4;" >&2
-  echo "       fill MODEL_URL (and TOKENIZER_URL) with the public URLs before submission." >&2
+if [ -z "${MODEL_URL}" ]; then
+  echo "ERROR: MODEL_URL is empty." >&2
   exit 1
 fi
 fetch_verify "${MODEL_URL}" "${MODEL_PATH}" "${MODEL_SHA256}" "GGUF"
 
-if [ "${TOKENIZER_URL}" = "TODO_HUGGINGFACE_TOKENIZER_JSON_URL" ]; then
-  echo "WARN: TOKENIZER_URL not set; the app falls back to the heuristic token counter." >&2
-else
+if [ -n "${TOKENIZER_URL}" ]; then
   fetch_verify "${TOKENIZER_URL}" "${TOKENIZER_PATH}" "${TOKENIZER_SHA256}" "tokenizer.json"
+else
+  echo "WARN: TOKENIZER_URL not set; the app falls back to the heuristic token counter." >&2
 fi
 
 echo "Done."

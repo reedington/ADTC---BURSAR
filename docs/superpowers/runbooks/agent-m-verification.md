@@ -7,12 +7,16 @@ ADTC standard laptop profile and record results in REPORT.md.
    Grammar and `/no_think` behaviour vary across releases; C2 needs reproducible numbers.
    Tag every result below with this hash.
 
-1. `bash download_model.sh` — fetches the GGUF and `tokenizer.json`.
-   - **Checksums are trust-on-first-use.** The real GGUF + tokenizer are published in Phase 3/4,
-     so no hash is pinned yet. On first download the script prints the computed SHA-256 for each
-     file; verify each against its Hugging Face file page, then set `MODEL_SHA256` /
-     `TOKENIZER_SHA256` in the script and commit the confirmed values. Subsequent runs verify
-     and fail closed on mismatch. (No placeholder hashes are ever committed.)
+1. `bash download_model.sh` — fetches the verification GGUF + `tokenizer.json`.
+   - **Verification/baseline artifacts are the ZERO-SHOT Qwen3 GGUFs (exist today):** the 1.7B
+     Q4_K_M (`unsloth/Qwen3-1.7B-GGUF`, ~1.03 GB) is what `download_model.sh` fetches; the 0.6B
+     Q4_K_M (`unsloth/Qwen3-0.6B-GGUF`, ~378 MB) is the C2-pivot baseline (URL in the script
+     comments). The tokenizer is Qwen3-1.7B's (`Qwen/Qwen3-1.7B/tokenizer.json`). At Phase 3/4
+     the GGUF is repointed to the fine-tuned Bursa-Recon.
+   - **Checksums are trust-on-first-use.** On first download the script prints the computed
+     SHA-256 for each file; verify each against its Hugging Face file page, then set
+     `MODEL_SHA256` / `TOKENIZER_SHA256` and commit the confirmed values. Subsequent runs fail
+     closed on mismatch. (No placeholder hashes are ever committed.)
    - Export `QWEN_TOKENIZER_JSON=model/tokenizer.json` so the app AND the token corpus
      over-count test (`tests/test_tokens.py::test_heuristic_overcounts_corpus`) use the exact
      tokenizer.
