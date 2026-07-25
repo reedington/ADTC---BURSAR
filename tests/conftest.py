@@ -1,5 +1,21 @@
+import sqlite3
 import pytest
 from bursa.db import connect, init_db, transaction
+
+
+@pytest.fixture
+def make_row():
+    """Build a real sqlite3.Row (the production type for a transaction) from fields,
+    so tests exercise the same accessor contract as production, not a friendlier dict."""
+    def _make(**fields):
+        conn = sqlite3.connect(":memory:")
+        conn.row_factory = sqlite3.Row
+        cols = ", ".join(fields.keys())
+        ph = ", ".join(["?"] * len(fields))
+        conn.execute(f"CREATE TABLE t ({cols})")
+        conn.execute(f"INSERT INTO t ({cols}) VALUES ({ph})", tuple(fields.values()))
+        return conn.execute("SELECT * FROM t").fetchone()
+    return _make
 
 
 @pytest.fixture
