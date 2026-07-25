@@ -1,16 +1,22 @@
 FIRST_NAMES = {
-    "en": ["Tunde", "Ada", "Emeka", "Bola", "Ngozi", "Segun", "Ifeoma", "Musa"],
-    "ig": ["Chidi", "Somtochukwu", "Uche", "Adaeze", "Obinna", "Chinelo"],
-    "yo": ["Adewale", "Folake", "Babatunde", "Yetunde", "Ayodeji", "Simisola"],
-    "ha": ["Aisha", "Ibrahim", "Fatima", "Sani", "Zainab", "Umar"],
-    "pcm": ["Chi", "Bimbo", "Ekene", "Nkechi", "Tobi", "Ada"],
+    "en": ["Tunde", "Ada", "Emeka", "Bola", "Ngozi", "Segun", "Ifeoma", "Musa",
+           "Kelechi", "Damilola", "Efe", "Halima", "Chinedu", "Funke"],
+    "ig": ["Chidi", "Somtochukwu", "Uche", "Adaeze", "Obinna", "Chinelo",
+           "Ikenna", "Nkiru", "Chukwuma", "Ada", "Ebuka", "Ngozi"],
+    "yo": ["Adewale", "Folake", "Babatunde", "Yetunde", "Ayodeji", "Simisola",
+           "Olamide", "Bukola", "Tijani", "Morenike", "Kunle", "Aduke"],
+    "ha": ["Aisha", "Ibrahim", "Fatima", "Sani", "Zainab", "Umar",
+           "Hauwa", "Nasir", "Amina", "Bashir", "Halima", "Yakubu"],
+    "pcm": ["Chi", "Bimbo", "Ekene", "Nkechi", "Tobi", "Ada",
+            "Emeka", "Funmi", "Uche", "Bola"],
 }
 LAST_NAMES = {
-    "en": ["Okafor", "Adeyemi", "Nwosu", "Bello", "Eze", "Balogun"],
-    "ig": ["Okafor", "Nwosu", "Eze", "Okeke", "Obi", "Nnamdi"],
-    "yo": ["Adeyemi", "Balogun", "Ogunlesi", "Afolabi", "Oyelaran"],
-    "ha": ["Bello", "Sani", "Yusuf", "Abubakar", "Danjuma"],
-    "pcm": ["Okafor", "Bello", "Eze", "Balogun"],
+    "en": ["Okafor", "Adeyemi", "Nwosu", "Bello", "Eze", "Balogun",
+           "Danjuma", "Okonkwo", "Afolabi", "Ibrahim"],
+    "ig": ["Okafor", "Nwosu", "Eze", "Okeke", "Obi", "Nnamdi", "Okonkwo", "Anyanwu"],
+    "yo": ["Adeyemi", "Balogun", "Ogunlesi", "Afolabi", "Oyelaran", "Adebayo", "Ojo", "Bello"],
+    "ha": ["Bello", "Sani", "Yusuf", "Abubakar", "Danjuma", "Musa", "Aliyu", "Garba"],
+    "pcm": ["Okafor", "Bello", "Eze", "Balogun", "Nwosu", "Adeyemi"],
 }
 
 
