@@ -31,3 +31,13 @@ def test_no_charge_without_billing_event(db):
         "(SELECT 1 FROM ledger_events e WHERE e.charge_id = c.charge_id "
         " AND e.event_type='charge_created')").fetchall()
     assert orphans == []
+
+
+def test_import_students_reads_aliases(db):
+    db.execute("INSERT INTO terms VALUES ('T1','2025/2026','second_term',1)")
+    rows = [{"student_id": "STU-1", "name": "Chidi Okafor", "class": "JSS1", "term_id": "T1",
+             "aliases": "Chi; Chidi"}]
+    students.import_students(db, rows, "students.csv")
+    aliases = [r["normalized_alias"] for r in db.execute(
+        "SELECT normalized_alias FROM student_aliases WHERE student_id='STU-1'").fetchall()]
+    assert set(aliases) == {"chi", "chidi"}

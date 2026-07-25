@@ -20,6 +20,12 @@ def import_students(conn, rows, source_file) -> dict:
                     "(student_id, name, normalized_name, class, term_id) VALUES (?,?,?,?,?)",
                     (sid, name, normalize.normalize_name(name), row.get("class"),
                      row.get("term_id")))
+                raw_aliases = (row.get("aliases") or "").strip()
+                for alias in [a.strip() for a in raw_aliases.split(";") if a.strip()]:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO student_aliases "
+                        "(student_id, alias, normalized_alias) VALUES (?,?,?)",
+                        (sid, alias, normalize.normalize_name(alias)))
             accepted += 1
         except Exception as exc:  # FK / integrity
             errors.append(ImportRowError(i, "student_id", str(exc)))

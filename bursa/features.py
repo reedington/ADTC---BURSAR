@@ -3,10 +3,18 @@ from bursa import normalize
 FEATURES_VERSION = 1
 
 
+def _field(txn, key):
+    """Read a field from either a sqlite3.Row or a dict, defaulting to None."""
+    try:
+        return txn[key]
+    except (KeyError, IndexError):
+        return None
+
+
 def extract(txn, surviving, model_data, dry_ok, chosen_id, budget_shed=False) -> dict:
     chosen = next((c for c in surviving if c.student_id == chosen_id), None)
-    payer_tokens = set(normalize.normalize_name(txn.get("payer_name") or "").split())
-    narr_tokens = set(normalize.narration_tokens(txn.get("narration")))
+    payer_tokens = set(normalize.normalize_name(_field(txn, "payer_name") or "").split())
+    narr_tokens = set(normalize.narration_tokens(_field(txn, "narration")))
     probe = payer_tokens | narr_tokens
 
     name_sim = 0.0
