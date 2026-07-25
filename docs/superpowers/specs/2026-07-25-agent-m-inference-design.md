@@ -188,13 +188,14 @@ Model-path proposals are stored in `proposals` (+ `proposal_allocations`, `featu
 ## 9. Verification runbook (`docs/superpowers/runbooks/agent-m-verification.md`)
 
 Hardware-bound steps, run by the team on i5-class hardware (I cannot run them here):
+0. **Pin the toolchain (required):** record the exact `llama.cpp` version / commit hash used. Grammar and `/no_think` behaviour vary across releases, and C2 depends on reproducible numbers — so this hash is recorded alongside *every* result below.
 1. `bash download_model.sh` — fetches the GGUF **and `tokenizer.json` with a pinned SHA-256 checksum** (script updated: `TOKENIZER_URL` + `TOKENIZER_SHA256`, verified post-download).
 2. Start `llama-server` with the D3 config; confirm `/health`.
 3. Run the **2 D14 test prompts** through `LlamaServerBackend`; inspect JSON + reasoning.
-4. **N=1000** consecutive app inferences over demo fixtures: record valid-JSON pass/fail counts (**target ≥99.5%**) and unknown-ID count (**target 0%**).
+4. **N=1000** consecutive app inferences over **distinct inputs** (required): record valid-JSON pass/fail counts (**target ≥99.5%**) and unknown-ID count (**target 0%**). At temp 0 an identical prompt yields identical output, so the 1000 prompts MUST differ — **1000 runs over the 13 demo fixtures is only 13 effective samples and does NOT satisfy this.** Either sequence this check *after* Agent D's synthetic generator exists, or drive it with deterministic, reproducibly-seeded fixture permutations (name / amount / narration-noise variants) so all 1000 prompts are unique.
 5. **No-think assertion:** under `/no_think` + grammar, verify output contains **no think-block content** and begins immediately with grammar-valid JSON (thinking leakage would break parsing and consume output budget).
 6. Bare-GGUF chat-template check in clean **Ollama** and **LM Studio** (no system prompt) — the 2 test prompts + generic enterprise prompts answer well.
-7. Record tps / peak-RSS / temperature on i5-class.
+7. Record tps / peak-RSS / temperature on i5-class — **tagged with the pinned `llama.cpp` hash (step 0)** so C2's comparison across runs is reproducible.
 
 ## 10. Acceptance criteria (Phase 2A)
 
@@ -207,3 +208,5 @@ Hardware-bound steps, run by the team on i5-class hardware (I cannot run them he
 
 ## 11. Deferred (later phases)
 Calibrator *training* → Phase 3 (needs gold set); real-model valid-JSON / tps / RSS / thermal + chat-template → runbook on i5 hardware; Agent D data/eval; OCR; UI; bursar-approves-then-posts review action.
+
+**Carry-over requirement into Agent D:** the evaluation harness must measure **candidate-pool recall on the gold set** — the fraction of gold cases whose correct student(s) appear in the generated ≤5 candidates. This is the metric that validates `FUZZY_NAME_THRESHOLD` and the pooling signals (a threshold too high silently drops correct students before the model ever sees them). Design Agent D's harness to report it.
