@@ -2184,3 +2184,17 @@ git commit -m "test: full INV matrix, BR behavior, conservation/stateful propert
 **Type consistency:** `LedgerEventInput`, `RecommendedAction`, `EventType`, `live_events`, `charge_balance`, `create_charge`, `post`, `reverse`, `distribute`, `reconcile` signatures are used identically across tasks.
 
 **No placeholders:** every code step contains runnable code; TODOs exist only in the *submission template files* (metadata/report/download), never in this plan's implementation.
+
+---
+
+## Execution notes (deltas from the plan, discovered during implementation)
+
+Recorded so a future re-execution doesn't re-hit these. All committed on branch `phase-1-financial-core`; final suite: **63 passed**.
+
+1. **Append-only trigger tests expect `sqlite3.IntegrityError`, not `OperationalError`.** SQLite's `RAISE(ABORT, …)` surfaces as `IntegrityError` in Python's `sqlite3`. Task 5's `test_db.py` assertions were changed accordingly. The triggers themselves are unchanged and correct.
+
+2. **The `conftest.py` seed provides identity only (no `charges` row).** The original fixture created a `charges` row with no `charge_created` event — which (a) violates the "no charge without a billing event" guarantee and (b) collides with `create_charge`. Fixed: `seeded_term_student_fee` seeds term/student/fee; `seeded_ledger_event` creates the `CHG-1` identity row **and** its `charge_created` event. Low-level tests that insert raw charge events (`test_repository`, `test_projections`, `test_constraints`) create their own `charges` row.
+
+3. **Environment/tooling:** built under a `uv`-managed venv (`uv venv` + `uv pip install`; the standalone Python can't run `python -m venv`/`ensurepip`). Dependency wiring uses pytest `pythonpath = ["."]` in `pyproject.toml` instead of an editable install — simpler and backend-free for a pure-source project. `db.connect` also sets `PRAGMA busy_timeout = 5000` (folded in early, per the plan's concurrency note).
+
+4. **Minor polish:** `pipeline.reconcile` takes `config: Config | None = None` (avoids a mutable default arg); the dead `key_no_ref` line in `statement.py` was dropped.
