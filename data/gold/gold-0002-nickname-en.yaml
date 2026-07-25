@@ -1,0 +1,31 @@
+# MEDIUM — nickname + surname misspelling; guardian pays. Correct outcome is review
+# (the model proposes, but a non-exact match is routed to a human in v1).
+id: gold-0002-nickname
+scenario_family: nickname_initials
+language: en
+difficulty: medium
+guardian_family: nwosu
+template_family: nickname_misspelled_surname
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-nwosu, name: "Ngozi Nwosu", phone_suffix: "7788" }
+  students:
+    - id: STU-2001
+      name: "Adaeze Nwosu"
+      aliases: ["Ada"]
+      guardians: [G-nwosu]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 30000 }]
+  history: []
+transaction:
+  reference: NIP88007788
+  date: "2026-02-15"
+  amount_naira: 30000
+  payer_name: "N. NWOSO"
+  narration: "ada nwoso school fee"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-2001, fee_id: FEE-TUITION, amount_naira: 30000 }
+  rationale: "Nickname 'ada' + misspelled surname 'nwoso'; plausible single match but non-exact, so review."

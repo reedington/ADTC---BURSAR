@@ -1,0 +1,36 @@
+# HARD — one transfer for two siblings, named by aliases; combined balance equals the payment.
+id: gold-0003-sibling-split
+scenario_family: sibling_split
+language: en
+difficulty: hard
+guardian_family: okafor
+template_family: two_names_schfee
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-okafor, name: "C. N. Okafor", phone_suffix: "1049" }
+  students:
+    - id: STU-1042
+      name: "Chidi Okafor"
+      aliases: ["Chi"]
+      guardians: [G-okafor]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 40000 }]
+    - id: STU-1188
+      name: "Somtochukwu Okafor"
+      aliases: ["Somto"]
+      guardians: [G-okafor]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 35000 }]
+  history: []
+transaction:
+  reference: NIP7281049
+  date: "2026-02-14"
+  amount_naira: 75000
+  payer_name: "C. N. OKAFOR"
+  narration: "CHI AND SOMTO SCH FEE"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-1042, fee_id: FEE-TUITION, amount_naira: 40000 }
+    - { student_id: STU-1188, fee_id: FEE-TUITION, amount_naira: 35000 }
+  rationale: "Two sibling aliases share a guardian; combined balance (40k + 35k) equals the 75k payment."
