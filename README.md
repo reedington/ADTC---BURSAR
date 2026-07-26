@@ -12,10 +12,10 @@ Bursa turns messy bank statements and payment evidence into an accurate, auditab
 |---|---|---|
 | Phase 1 | **Agent F — Financial Core** (data model, imports, dedup, matcher, constraint engine INV-01..10, append-only ledger) | ✅ complete on `main` (checkpoint C1) |
 | Phase 2A | **Agent M — Inference path** (candidate generator, prompt builder, GBNF grammar, schema validation, calibrator v1 — model never auto-posts) | ✅ complete on `main` |
-| Phase 2B | **Agent D — Data & Evaluation** | 🚧 in progress — **data foundation complete** on `main` (gold-case schema + ledger-backed validator, scaffold, deterministic synthetic generator, leak-free splits, assembly + freeze manifest); **eval harness next** |
+| Phase 2B | **Agent D — Data & Evaluation** | 🚧 in progress — data foundation + **eval harness complete** on `main` (three suites on the inference seams, one scorecard command with two hard safety gates, `FakeBackend`-deterministic in CI); consolidated i5 runbook pending the hardware session |
 | — | Baselines / C2 pivot (1.7B vs 0.6B), Phase 3 fine-tune + calibrator training | ⏳ upcoming |
 
-**Test suite:** 142 passing (1 skipped — a tokenizer-asset check that runs on i5-class hardware).
+**Test suite:** 168 passing (1 skipped — a tokenizer-asset check that runs on i5-class hardware).
 
 ## Architecture
 
@@ -67,6 +67,7 @@ uv pip install --python .venv/bin/python "pydantic>=2.6" pytest hypothesis pyyam
 | `python -m bursa_eval.goldcheck data/gold` | validate gold cases (schema + financial invariants) + coverage report |
 | `python -m bursa_eval.goldnew --family sibling_split --lang en --difficulty hard` | scaffold a new gold case |
 | `bash download_model.sh` | fetch the GGUF (zero-shot Qwen3-1.7B Q4_K_M for now) + tokenizer, TOFU checksums |
+| `python -m bursa_eval.harness.scorecard --backend fake` | run the eval harness offline; emits the scorecard + per-case records (exits non-zero if a safety gate fails) |
 
 ## Safety invariants (execution plan §3.1)
 
@@ -76,4 +77,5 @@ All money is **integer minor units** (no floats); allocations can't exceed the t
 
 - Financial Core: [design](docs/superpowers/specs/2026-07-24-bursa-financial-core-design.md) · [plan](docs/superpowers/plans/2026-07-24-bursa-financial-core.md)
 - Agent M inference path: [design](docs/superpowers/specs/2026-07-25-agent-m-inference-design.md) · [plan](docs/superpowers/plans/2026-07-25-agent-m-inference.md) · [verification runbook](docs/superpowers/runbooks/agent-m-verification.md)
+- Agent D eval harness: [design](docs/superpowers/specs/2026-07-25-agent-d-eval-harness-design.md) · [plan](docs/superpowers/plans/2026-07-25-agent-d-eval-harness.md) · [i5 runbook](docs/superpowers/runbooks/eval-harness-i5.md)
 - Product baselines: [PRD](docs/PRD.md) · [Model architecture](docs/MODEL_ARCHITECTURE.md) · [Project context](docs/PROJECT_CONTEXT.md)

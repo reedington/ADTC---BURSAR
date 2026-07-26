@@ -30,3 +30,6 @@ venv/
 
 # Generated dataset builds (regenerable from seed + gold)
 data/build/
+
+# Eval-harness run artifacts (scorecards + per-case records, regenerable)
+runs/
