@@ -76,10 +76,12 @@ run_model() {
 run_model "qwen3-1.7b" "model/qwen3-1.7b-q4_k_m.gguf"
 run_model "qwen3-0.6b" "model/qwen3-0.6b-q4_k_m.gguf"
 
-for run_number in $(seq 1 10); do
+for run_number in $(seq 1 9); do
   .venv/bin/adtc-profiler run --submission . --mode participant --skip-accuracy \
     --output "runs/i5/submission-${run_number}.json"
 done
+.venv/bin/adtc-profiler run --submission . --mode participant \
+  --output "runs/i5/submission-10.json"
 cp "runs/i5/submission-10.json" submission.json
 
 echo "i5 checkpoint complete. Review runs/i5/ and apply the locked C2 pivot."
