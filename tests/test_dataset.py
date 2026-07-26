@@ -66,7 +66,7 @@ def test_freeze_and_reload_manifest(tmp_path):
 def test_build_produces_splits_jsonl_and_coverage(tmp_path):
     out = str(tmp_path / "build")
     result = build(base_seed=5, n_synth=12, gold_dir="data/gold", out_dir=out)
-    assert result["gold"] == 3 and result["synth"] == 12
+    assert result["gold"] >= 14 and result["synth"] == 12
     for name in ("train", "val", "test"):
         assert os.path.exists(f"{out}/{name}.jsonl")
     for name in ("val", "test"):            # synthetic (synth-*) never leaves train

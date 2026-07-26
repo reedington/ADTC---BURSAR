@@ -66,6 +66,7 @@ def test_main_smoke_writes_artifacts(tmp_path):
     assert "gates_failed" in sc
     assert sc["provenance"]["backend"] == "fake"
     assert code == 0   # committed gold set passes both gates
-    # gold-0001 is an auto-post case (gate exercised); no duplicate case exists (gate vacuous).
+    # The committed suite contains an exact auto-post and a duplicate-reference case, so both
+    # money-safety gates are genuinely exercised rather than vacuously green.
     assert "incorrect_auto_posts" not in sc["gates_not_exercised"]
-    assert "duplicate_blocked_rate" in sc["gates_not_exercised"]
+    assert "duplicate_blocked_rate" not in sc["gates_not_exercised"]

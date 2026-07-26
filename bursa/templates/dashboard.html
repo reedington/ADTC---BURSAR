@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Bursa — Offline reconciliation</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header>
+      <div>
+        <p class="eyebrow">OFFLINE • LOCAL LEDGER • HUMAN REVIEW</p>
+        <h1>Bursa</h1>
+        <p class="lede">School-fee reconciliation that keeps the model away from the ledger.</p>
+      </div>
+      <div class="offline"><span></span> Offline mode</div>
+    </header>
+
+    <main>
+      <section class="metrics" aria-label="Summary">
+        <article><strong>{{ transactions|length }}</strong><span>bank credits</span></article>
+        <article><strong>{{ students|length }}</strong><span>students</span></article>
+        <article><strong>{{ review_count }}</strong><span>needs review</span></article>
+        <article><strong>{{ event_count }}</strong><span>audit events</span></article>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">IMPORT CENTRE</p>
+            <h2>Bring existing records</h2>
+          </div>
+          <p>UTF-8 CSV, maximum 1 MB. Data stays in <code>{{ database }}</code>.</p>
+        </div>
+        <div class="imports">
+          {% for kind, label in [('students', 'Student register'), ('fees', 'Fee schedule'), ('statement', 'Bank statement')] %}
+          <form action="/import/{{ kind }}" method="post" enctype="multipart/form-data">
+            <label for="{{ kind }}">{{ label }}</label>
+            <input id="{{ kind }}" name="file" type="file" accept=".csv,text/csv" required>
+            <button type="submit">Import CSV</button>
+          </form>
+          {% endfor %}
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">RECONCILIATION</p>
+            <h2>Payments waiting for a decision</h2>
+          </div>
+          <p>Exact IDs use the deterministic path. Ambiguity remains visible.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Date</th><th>Payer and narration</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+            <tbody>
+            {% for txn in transactions %}
+              <tr>
+                <td>{{ txn.posted_at[:10] }}</td>
+                <td><strong>{{ txn.payer_name or 'Unknown payer' }}</strong><small>{{ txn.narration or 'No narration' }}</small></td>
+                <td class="money">{{ txn.amount_display }}</td>
+                <td><span class="status status-{{ txn.routing_state }}">{{ txn.routing_state }}</span></td>
+                <td>
+                  {% if txn.routing_state == 'new' %}
+                  <form action="/reconcile/{{ txn.transaction_id }}" method="post">
+                    <button class="quiet" type="submit">Reconcile</button>
+                  </form>
+                  {% else %}<span class="done">Recorded</span>{% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">STUDENT LEDGER</p><h2>Balances derived from events</h2></div>
+          <p>No editable status field; every balance reconstructs from the ledger.</p>
+        </div>
+        <div class="student-grid">
+          {% for student in students %}
+          <article>
+            <div><strong>{{ student.name }}</strong><small>{{ student.student_id }} · {{ student.class or 'No class' }}</small></div>
+            <div class="balance"><strong>{{ student.balance_display }}</strong><span>{{ student.status }}</span></div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+
+    <footer>Fictional demonstration data. No cloud dependency or external telemetry.</footer>
+  </body>
+</html>

@@ -1,0 +1,4 @@
+student_id,fee_id,fee_name,term_id,amount,priority
+STU-1042,FEE-TUITION,Tuition,T1,40000,10
+STU-1188,FEE-TUITION,Tuition,T1,35000,10
+STU-2001,FEE-TUITION,Tuition,T1,30000,10

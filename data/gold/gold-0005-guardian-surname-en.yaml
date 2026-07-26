@@ -1,0 +1,32 @@
+# Guardian surname differs from the student's surname; the guardian relationship carries the match.
+id: gold-0005-guardian-surname
+scenario_family: guardian_surname_differs
+language: en
+difficulty: medium
+guardian_family: balogun-olamide
+template_family: guardian_name_differs
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-5005, name: "Funke Balogun", phone_suffix: "5005" }
+  students:
+    - id: STU-5005
+      name: "Dara Olamide"
+      guardians: [G-5005]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 45000 }]
+  history: []
+transaction:
+  reference: NIP50050001
+  date: "2026-02-16"
+  amount_naira: 45000
+  payer_name: "FUNKE BALOGUN"
+  narration: "school fees for Dara"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-5005, fee_id: FEE-TUITION, amount_naira: 45000 }
+  rationale: >
+    The payer surname differs from the student's surname, but Funke Balogun is Dara Olamide's
+    recorded guardian and the payment equals Dara's outstanding tuition. The relationship is
+    strong evidence, but the non-ID match remains a review proposal.

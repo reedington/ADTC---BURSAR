@@ -1,0 +1,33 @@
+# Overpayment must become explicit student credit rather than disappearing.
+id: gold-0008-overpayment
+scenario_family: overpayment
+language: en
+difficulty: medium
+guardian_family: obasi
+template_family: tuition_surplus_to_credit
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-8008, name: "Chika Obasi" }
+  students:
+    - id: STU-8008
+      name: "Ifeanyi Obasi"
+      guardians: [G-8008]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 50000 }]
+  history: []
+transaction:
+  reference: NIP80080001
+  date: "2026-02-17"
+  amount_naira: 55000
+  payer_name: "CHIKA OBASI"
+  narration: "Ifeanyi full school fees"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-8008, fee_id: FEE-TUITION, amount_naira: 50000 }
+  credits:
+    - { holder: STU-8008, amount_naira: 5000 }
+  rationale: >
+    Clear Ifeanyi's NGN 50,000 tuition balance and record the NGN 5,000 surplus as explicit
+    student credit. The surplus must never be discarded or force the charge negative.

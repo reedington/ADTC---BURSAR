@@ -1,0 +1,31 @@
+# A second-term tuition instalment that must remain part-paid.
+id: gold-0006-instalment
+scenario_family: instalment
+language: en
+difficulty: medium
+guardian_family: ogundele
+template_family: partial_tuition_instalment
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-6006, name: "Bisi Ogundele" }
+  students:
+    - id: STU-6006
+      name: "Femi Ogundele"
+      guardians: [G-6006]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 60000 }]
+  history: []
+transaction:
+  reference: NIP60060001
+  date: "2026-02-16"
+  amount_naira: 20000
+  payer_name: "BISI OGUNDELE"
+  narration: "Femi second instalment school fee"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-6006, fee_id: FEE-TUITION, amount_naira: 20000 }
+  rationale: >
+    The narration names Femi and identifies an instalment. Allocate only the received NGN 20,000
+    to tuition and retain the remaining balance; do not invent a full-payment allocation.

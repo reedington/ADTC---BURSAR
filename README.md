@@ -10,17 +10,20 @@ Bursa turns messy bank statements and payment evidence into an accurate, auditab
 
 | Phase | Component | State |
 |---|---|---|
-| Phase 1 | **Agent F — Financial Core** (data model, imports, dedup, matcher, constraint engine INV-01..10, append-only ledger) | ✅ complete on `main` (checkpoint C1) |
-| Phase 2A | **Agent M — Inference path** (candidate generator, prompt builder, GBNF grammar, schema validation, calibrator v1 — model never auto-posts) | ✅ complete on `main` |
-| Phase 2B | **Agent D — Data & Evaluation** | 🚧 in progress — data foundation + **eval harness complete** on `main` (three suites on the inference seams, one scorecard command with two hard safety gates, `FakeBackend`-deterministic in CI); consolidated i5 runbook pending the hardware session |
+| Phase 1 | **Financial Core** (data model, imports, dedup, matcher, INV-01..10, append-only ledger) | ✅ code complete; C1 hardware prerequisites still pending |
+| Phase 2A | **Inference path** (candidate generator, prompt, GBNF, validation, fail-safe routing) | ✅ code complete; real-GGUF 1,000-run acceptance pending |
+| Phase 2B | **Data & Evaluation** | ✅ harness complete; 14/14 authored scenario families, English + Pidgin, both hard gates exercised in CI |
+| Demo | **Offline local web workflow** | ✅ CSV imports, transaction routing, balances, audit-event count; visually verified |
 | — | Baselines / C2 pivot (1.7B vs 0.6B), Phase 3 fine-tune + calibrator training | ⏳ upcoming |
 
-**Test suite:** 168 passing (1 skipped — a tokenizer-asset check that runs on i5-class hardware).
+**Test suite:** 178 passing, 1 skipped (the tokenizer/model-bound check runs during the target
+hardware session). Passing fake-backend tests validate mechanics and safety seams, not model
+quality or performance.
 
 ## Architecture
 
 ```
-CSV / screenshot → Import + OCR → Normalize + dedupe → Deterministic matcher
+CSV → Normalize + dedupe → Deterministic matcher
   → unambiguous → Constraint engine
   → ambiguous  → Candidate generator (≤5) → local LLM (GBNF JSON) → Schema validation → Constraint engine
 Constraint engine → Calibrated confidence → auto-match / review / unmatched
@@ -28,6 +31,10 @@ All approved postings → append-only ledger (source, evidence, actor, decision 
 ```
 
 Inviolable boundaries: OCR transcribes (never reconciles); the LLM ranks and explains (never posts); the constraint engine owns all money math; the bursar owns uncertainty; the bank statement is the source of truth for received money.
+
+OCR is deliberately **not included in the current Gate 1 build**. It will ship only if the
+single printed-transfer workflow passes the plan's reliability review; otherwise it remains
+future work.
 
 ## Repository layout
 
@@ -41,12 +48,15 @@ bursa/            # the application
 bursa_eval/       # evaluation & data tooling (Agent D)
   models.py, loader.py, goldcheck.py, goldnew.py              # gold-case schema, validator, scaffold
   synth/          # deterministic synthetic generator (templates, perturbation, D6 renderers)
+  harness/        # gold, ADTC/proxy, bare-model suites + scorecard
   dataset.py      # near-dup + leak-free splits, assembly, freeze manifest
 data/gold/        # team-authored gold cases (YAML, one per file)
 data/build/       # generated {train,val,test}.jsonl (git-ignored, regenerable from seed + gold)
 docs/             # PRD.md, MODEL_ARCHITECTURE.md, PROJECT_CONTEXT.md
   superpowers/specs/, superpowers/plans/, superpowers/runbooks/
 tests/            # pytest + hypothesis
+demo/             # fictional CSV fixtures
+media/            # verified application screenshots
 BURSA_ADTC_EXECUTION_PLAN.md   # the locked work order (decisions, phases, checkpoints)
 metadata.json, download_model.sh, REPORT.md                   # ADTC submission artifacts
 ```
@@ -55,9 +65,20 @@ metadata.json, download_model.sh, REPORT.md                   # ADTC submission 
 
 ```bash
 uv venv .venv
-uv pip install --python .venv/bin/python "pydantic>=2.6" pytest hypothesis pyyaml
+uv pip install --python .venv/bin/python -e ".[dev]"
 .venv/bin/pytest -q          # run the full suite
 ```
+
+## Run the offline demonstration
+
+```bash
+.venv/bin/bursa-web
+# open http://127.0.0.1:8000
+```
+
+The app seeds fictional records on first launch. CSV fixtures are also available in `demo/`.
+The interface binds to loopback only, uses a local SQLite database, and has no analytics or
+external telemetry.
 
 ## Key commands
 
@@ -67,7 +88,9 @@ uv pip install --python .venv/bin/python "pydantic>=2.6" pytest hypothesis pyyam
 | `python -m bursa_eval.goldcheck data/gold` | validate gold cases (schema + financial invariants) + coverage report |
 | `python -m bursa_eval.goldnew --family sibling_split --lang en --difficulty hard` | scaffold a new gold case |
 | `bash download_model.sh` | fetch the GGUF (zero-shot Qwen3-1.7B Q4_K_M for now) + tokenizer, TOFU checksums |
+| `bash download_model.sh --baselines` | additionally fetch the Qwen3-0.6B C2 comparison model |
 | `python -m bursa_eval.harness.scorecard --backend fake` | run the eval harness offline; emits the scorecard + per-case records (exits non-zero if a safety gate fails) |
+| `python -m bursa_eval.submission_check --gate1` | fail fast on missing identity, profiler, report, prompt, license, screenshot, or video artifacts |
 
 ## Safety invariants (execution plan §3.1)
 
@@ -78,4 +101,5 @@ All money is **integer minor units** (no floats); allocations can't exceed the t
 - Financial Core: [design](docs/superpowers/specs/2026-07-24-bursa-financial-core-design.md) · [plan](docs/superpowers/plans/2026-07-24-bursa-financial-core.md)
 - Agent M inference path: [design](docs/superpowers/specs/2026-07-25-agent-m-inference-design.md) · [plan](docs/superpowers/plans/2026-07-25-agent-m-inference.md) · [verification runbook](docs/superpowers/runbooks/agent-m-verification.md)
 - Agent D eval harness: [design](docs/superpowers/specs/2026-07-25-agent-d-eval-harness-design.md) · [plan](docs/superpowers/plans/2026-07-25-agent-d-eval-harness.md) · [i5 runbook](docs/superpowers/runbooks/eval-harness-i5.md)
+- Submission: [technical report](REPORT.md) · [demo script](docs/DEMO_SCRIPT.md) · [privacy](PRIVACY.md) · [security](SECURITY.md)
 - Product baselines: [PRD](docs/PRD.md) · [Model architecture](docs/MODEL_ARCHITECTURE.md) · [Project context](docs/PROJECT_CONTEXT.md)

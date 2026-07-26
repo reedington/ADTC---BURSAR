@@ -1,0 +1,38 @@
+# The same bank reference is already present in history and must be blocked before reconciliation.
+id: gold-0010-duplicate-reference
+scenario_family: duplicate_reference
+language: en
+difficulty: easy
+guardian_family: lawal
+template_family: exact_reference_reimport
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-1010, name: "Kabiru Lawal" }
+  students:
+    - id: STU-1010
+      name: "Maryam Lawal"
+      guardians: [G-1010]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 50000 }]
+  history:
+    - transaction:
+        reference: NIP10100001
+        date: "2026-02-10"
+        amount_naira: 50000
+        payer_name: "KABIRU LAWAL"
+        narration: "Maryam school fees"
+      allocations:
+        - { student_id: STU-1010, fee_id: FEE-TUITION, amount_naira: 50000 }
+transaction:
+  reference: NIP10100001
+  date: "2026-02-18"
+  amount_naira: 50000
+  payer_name: "KABIRU LAWAL"
+  narration: "Maryam school fees duplicate row"
+expected:
+  outcome: duplicate_blocked
+  allocations: []
+  rationale: >
+    NIP10100001 has already been imported and posted. The unique reference/dedup boundary must
+    block this row before any second ledger allocation can be created.

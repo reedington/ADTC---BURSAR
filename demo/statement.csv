@@ -1,0 +1,4 @@
+reference,date,amount,payer,narration,direction
+NIPDEMO001,2026-02-14,40000,C N OKAFOR,SCH FEES STU-1042,credit
+NIPDEMO002,2026-02-15,75000,C N OKAFOR,CHI AND SOMTO SCH FEE,credit
+NIPDEMO003,2026-02-16,30000,N NWOSO,ada nwoso school fee,credit

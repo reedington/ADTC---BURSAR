@@ -65,6 +65,13 @@ def distribute_divergence(case: GoldCase) -> str | None:
         totals = {}
         for a in case.expected.allocations:
             totals[a.student_id] = totals.get(a.student_id, 0) + naira_to_minor(a.amount_naira)
+        # A student-level model proposal contains the full amount intended for that student.
+        # When the authored answer includes overpayment credit, include it in the amount sent to
+        # distribute(); otherwise the natural path can never reproduce the credit event.
+        for credit in case.expected.credits:
+            if repo.student_exists(conn, credit.holder):
+                totals[credit.holder] = (
+                    totals.get(credit.holder, 0) + naira_to_minor(credit.amount_naira))
         natural = []
         for sid, tot in totals.items():
             evs, _ = distribute.distribute(conn, txn_id, sid, tot, "goldcheck")

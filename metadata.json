@@ -2,27 +2,36 @@
   "team_id": "",
   "domain": "corporate_enterprise",
   "language_scope": ["en", "pcm"],
-  "african_alpha_claim": true,
+  "african_alpha_claim": false,
   "budget_laptop_claim": true,
   "submitter": {
     "name": "",
     "email": "",
-    "github": "reedington"
+    "github_handle": "reedington"
   },
   "cross_disciplinary_pairing": {
     "discipline": "finance_accounting",
     "load_bearing": true,
     "description": "A local llama.cpp language model interprets ambiguous Nigerian school-fee payment narrations and ranks candidate students; a deterministic financial constraint engine owns all arithmetic, validates every proposed allocation against ledger invariants, and is the only path to an append-only student-fee ledger. The pairing is load-bearing because neither half reconciles messy real payments alone: rules cannot interpret intent, and the model must never post unverified money."
   },
-  "test_prompts": [],
+  "test_prompts": [
+    {
+      "prompt_id": "tp_001",
+      "prompt": "You are helping a Nigerian school bursar reconcile one bank transfer. Transaction: NGN 75,000; payer C. N. Okafor; narration \"CHI AND SOMTO SCH FEE\". Candidate students: STU-1042 Chidi Okafor (alias Chi), outstanding tuition NGN 40,000, guardian C. N. Okafor; STU-1188 Somtochukwu Okafor (alias Somto), outstanding tuition NGN 35,000, guardian C. N. Okafor; STU-1310 Chiamaka Eze (alias Chi-Chi), outstanding tuition NGN 75,000, guardian A. Eze. Recommend the correct allocation, explain the evidence, and state whether a human review is still appropriate."
+    },
+    {
+      "prompt_id": "tp_002",
+      "prompt": "A Nigerian school receives a transfer of NGN 20,000 from MUSA IBRAHIM with the narration \"abeg na school fees for my pikin\". Two candidate students are linked to guardians named Musa Ibrahim: STU-2093 Amina Musa owes NGN 35,000 and STU-2140 Sadiq Ibrahim owes NGN 50,000. There is no student ID, phone suffix, receipt reference, or other disambiguating evidence. What should the bursar do? Explain in clear language and do not guess a student."
+    }
+  ],
   "model": {
-    "name": "Bursa-Recon-1.7B-Q4_K_M",
+    "name": "Qwen3-1.7B-Q4_K_M",
     "runtime": "llama.cpp",
     "quantization": "GGUF Q4_K_M",
     "parameters_estimate": "1.7B",
     "packaging": "binary_bundle"
   },
   "_runtime": {
-    "model_path": "model/bursa-recon-1.7b-q4_k_m.gguf"
+    "model_path": "model/qwen3-1.7b-q4_k_m.gguf"
   }
 }

@@ -1,0 +1,34 @@
+# One student payment covers two separately tracked fee items.
+id: gold-0009-fee-item-split
+scenario_family: fee_item_split
+language: en
+difficulty: hard
+guardian_family: ekong
+template_family: tuition_and_transport
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-9009, name: "Ini Ekong" }
+  students:
+    - id: STU-9009
+      name: "Mfon Ekong"
+      guardians: [G-9009]
+      charges:
+        - { fee_id: FEE-TUITION, amount_naira: 40000 }
+        - { fee_id: FEE-TRANSPORT, amount_naira: 15000 }
+  history: []
+transaction:
+  reference: NIP90090001
+  date: "2026-02-18"
+  amount_naira: 55000
+  payer_name: "INI EKONG"
+  narration: "Mfon tuition 40k and transport 15k"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-9009, fee_id: FEE-TUITION, amount_naira: 40000 }
+    - { student_id: STU-9009, fee_id: FEE-TRANSPORT, amount_naira: 15000 }
+  rationale: >
+    The narration supplies an explicit fee-item split whose NGN 40,000 and NGN 15,000 components
+    sum exactly to the transfer and to Mfon's two outstanding charges.

@@ -1,0 +1,33 @@
+# Common OCR substitutions corrupt a student's name, but guardian and amount evidence remain.
+id: gold-0013-ocr-substitution
+scenario_family: ocr_substitution
+language: en
+difficulty: hard
+guardian_family: adekunle
+template_family: zero_for_letter_ocr
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-1313, name: "Tayo Adekunle", phone_suffix: "1313" }
+  students:
+    - id: STU-1313
+      name: "Bola Adekunle"
+      aliases: ["Bola"]
+      guardians: [G-1313]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 42500 }]
+  history: []
+transaction:
+  reference: NIP13130001
+  date: "2026-02-20"
+  amount_naira: 42500
+  payer_name: "TAYO ADEKUNLE"
+  narration: "B0LA A0EKUNLE SCH0OL FEE"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-1313, fee_id: FEE-TUITION, amount_naira: 42500 }
+  rationale: >
+    OCR has substituted zero for O and distorted the surname, but the guardian and exact balance
+    support Bola as the leading candidate. Preserve the raw evidence and route the correction
+    through review.

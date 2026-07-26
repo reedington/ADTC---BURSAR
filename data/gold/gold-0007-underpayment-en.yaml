@@ -1,0 +1,31 @@
+# A clearly identified student pays less than the outstanding charge.
+id: gold-0007-underpayment
+scenario_family: underpayment
+language: en
+difficulty: medium
+guardian_family: danjuma
+template_family: named_underpayment
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-7007, name: "Amina Danjuma" }
+  students:
+    - id: STU-7007
+      name: "Zainab Danjuma"
+      guardians: [G-7007]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 50000 }]
+  history: []
+transaction:
+  reference: NIP70070001
+  date: "2026-02-17"
+  amount_naira: 30000
+  payer_name: "AMINA DANJUMA"
+  narration: "Zainab tuition part payment"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-7007, fee_id: FEE-TUITION, amount_naira: 30000 }
+  rationale: >
+    Zainab and her guardian are identified, but the NGN 30,000 transfer is below the NGN 50,000
+    tuition balance. Post only the amount received and leave NGN 20,000 outstanding.

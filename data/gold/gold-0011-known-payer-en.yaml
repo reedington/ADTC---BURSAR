@@ -1,0 +1,39 @@
+# Historical payer mapping resolves a later abbreviated narration.
+id: gold-0011-known-payer
+scenario_family: known_payer
+language: en
+difficulty: medium
+guardian_family: mensah
+template_family: payer_history_followup
+provenance: team_authored
+setup:
+  term: { id: T1, session: "2025/2026", name: second_term }
+  guardians:
+    - { id: G-1111, name: "Kwame Mensah" }
+  students:
+    - id: STU-1111
+      name: "Ama Mensah"
+      guardians: [G-1111]
+      charges: [{ fee_id: FEE-TUITION, amount_naira: 80000 }]
+  history:
+    - transaction:
+        reference: NIP11110000
+        date: "2026-01-20"
+        amount_naira: 30000
+        payer_name: "KWAME MENSAH"
+        narration: "Ama first payment"
+      allocations:
+        - { student_id: STU-1111, fee_id: FEE-TUITION, amount_naira: 30000 }
+transaction:
+  reference: NIP11110001
+  date: "2026-02-19"
+  amount_naira: 50000
+  payer_name: "KWAME MENSAH"
+  narration: "balance"
+expected:
+  outcome: review
+  allocations:
+    - { student_id: STU-1111, fee_id: FEE-TUITION, amount_naira: 50000 }
+  rationale: >
+    The narration is weak, but the same normalized payer previously paid Ama and her remaining
+    tuition balance is exactly NGN 50,000. Historical mapping supports a review proposal.

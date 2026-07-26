@@ -4,8 +4,8 @@ Cross-reference: [`agent-m-verification.md`](agent-m-verification.md). **This on
 ALL C2 inputs.** Benchmarks count only on i5-class hardware at 4 threads (Prime Directive 5).
 
 ## 0. Prereqs
-- `bash download_model.sh` — fetches the zero-shot Qwen3-1.7B Q4_K_M + the 0.6B baseline + the
-  tokenizer; verify the TOFU checksums it prints.
+- `bash download_model.sh --baselines` — fetches the zero-shot Qwen3-1.7B Q4_K_M primary,
+  the Qwen3-0.6B comparison model, and the tokenizer. Verify and pin the TOFU checksums it prints.
 - Pin the llama.cpp build (see the Agent M runbook for the exact commit).
 
 ## 1. Agent M assertions
@@ -22,10 +22,10 @@ The Bursa-gold suite is **Qwen-template-bound by design** (the app self-applies 
 locked in Agent M), so C2's pipeline comparison is 1.7B vs 0.6B:
 
     python -m bursa_eval.harness.scorecard --backend llama \
-      --model-path model/qwen3-1.7b-q4.gguf --tokenizer model/tokenizer.json \
+      --model-path model/qwen3-1.7b-q4_k_m.gguf --tokenizer model/tokenizer.json \
       --perf perf-1.7b.json --label qwen3-1.7b
     python -m bursa_eval.harness.scorecard --backend llama \
-      --model-path model/qwen3-0.6b-q4.gguf --tokenizer model/tokenizer.json \
+      --model-path model/qwen3-0.6b-q4_k_m.gguf --tokenizer model/tokenizer.json \
       --perf perf-0.6b.json --label qwen3-0.6b
 
 Both MUST exit 0. A non-zero exit means `incorrect_auto_posts != 0` or `duplicate_blocked_rate < 100%`
