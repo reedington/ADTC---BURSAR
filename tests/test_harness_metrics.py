@@ -1,5 +1,5 @@
 from bursa_eval.harness.runner import CaseRecord
-from bursa_eval.harness.metrics import compute_metrics, evaluate_gates
+from bursa_eval.harness.metrics import compute_metrics, evaluate_gates, unexercised_gates
 
 
 def _rec(**kw):
@@ -41,6 +41,17 @@ def test_review_with_allocations_is_not_an_abstention():
     assert m["abstention_precision"] is None
     assert m["action_accuracy"] == 1.0
     assert rec.model_abstains is False   # the record itself never mislabels it
+
+
+def test_unexercised_gates_flags_empty_populations():
+    # No auto-post cases and no duplicate cases -> BOTH gates are vacuous, not passing.
+    recs = [_rec(top1_hit=True)]
+    assert set(unexercised_gates(recs)) == {"incorrect_auto_posts", "duplicate_blocked_rate"}
+
+
+def test_exercised_gates_are_not_flagged():
+    recs = [_rec(would_auto_post=True, exact_alloc_hit=True), _rec(dup_blocked=True)]
+    assert unexercised_gates(recs) == []
 
 
 def test_action_accuracy_and_top1_aggregate():

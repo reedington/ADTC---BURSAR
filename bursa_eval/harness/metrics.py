@@ -44,3 +44,14 @@ def evaluate_gates(metrics: dict) -> list[str]:
     if rate is not None and rate < 1.0:
         fails.append("duplicate_blocked_rate")
     return fails
+
+
+def unexercised_gates(records) -> list[str]:
+    """Hard gates whose populations are EMPTY — vacuously green, so never mistake them for
+    passing. The scorecard warns loudly when a gate wasn't exercised by any qualifying case."""
+    out = []
+    if not any(r.would_auto_post for r in records):
+        out.append("incorrect_auto_posts")       # no would-auto-post cases -> the 0 is vacuous
+    if not any(r.dup_blocked is not None for r in records):
+        out.append("duplicate_blocked_rate")      # no duplicate_blocked cases -> rate is None
+    return out

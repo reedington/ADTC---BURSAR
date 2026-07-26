@@ -10,7 +10,7 @@ import sys
 from dataclasses import asdict
 from bursa_eval.goldcheck import load_case
 from bursa_eval.harness.runner import run_gold_suite
-from bursa_eval.harness.metrics import compute_metrics, evaluate_gates
+from bursa_eval.harness.metrics import compute_metrics, evaluate_gates, unexercised_gates
 from bursa_eval.harness.adtc import load_adtc, score_adtc
 from bursa_eval.harness.baremodel import load_bare_prompts, run_bare_suite
 
@@ -42,6 +42,7 @@ def build_scorecard(records, adtc_res=None, bare_records=None, provenance=None, 
         "perf": perf,   # profiler-ingested ONLY; harness timings never populate this
         "provenance": provenance or {},
         "gates_failed": evaluate_gates(metrics),
+        "gates_not_exercised": unexercised_gates(records),
     }
 
 
@@ -144,6 +145,9 @@ def main(argv=None) -> int:
     print(f"duplicate_blocked_rate = {g['duplicate_blocked_rate']}")
     print(f"action_accuracy        = {g['action_accuracy']}")
     print(f"top1_student_accuracy  = {g['top1_student_accuracy']}")
+    for gate in sc["gates_not_exercised"]:
+        print(f"WARN: gate not exercised — {gate} (no qualifying cases; vacuous, NOT a pass)",
+              file=sys.stderr)
     if sc["gates_failed"]:
         print(f"GATES FAILED: {sc['gates_failed']}", file=sys.stderr)
         return 1
