@@ -1,4 +1,5 @@
 import json
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from bursa import matcher, distribute, ledger, repository as repo, candidates, features, constraints
 from bursa.config import Config
@@ -30,6 +31,58 @@ def _store_review(conn, txn_id, source, reason, explanation, features_json=None)
     return "review"
 
 
+@dataclass
+class ModelPathResult:
+    """The model path's RAW result. reconcile() consumes it for routing/storage; the eval
+    harness consumes it for scoring. Never posts. No harness-specific fields or mode flags."""
+    surviving: list
+    budget_shed: bool
+    data: dict | None
+    failure: str | None          # None | no_candidates | prompt_budget | transport | schema
+    schema_reason: str | None
+    dry_ok: bool
+    chosen_id: str | None
+    model_events: list = field(default_factory=list)
+
+
+def run_model_path(conn, txn, backend, tokenizer_path: str | None = None) -> ModelPathResult:
+    """Run the non-exact model path through the real serving components and return the model's
+    raw validated output plus the charge-grain events its allocations distribute to."""
+    txn_id = txn["transaction_id"]
+    cands = candidates.generate(conn, txn)
+    if not cands:
+        return ModelPathResult([], False, None, "no_candidates", None, True, None)
+
+    counter = get_token_counter(tokenizer_path)
+    raw_prompt, surviving = prompt_mod.build(txn, cands, counter, ALLOWED_CODES)
+    budget_shed = len(surviving) < len(cands)
+    if raw_prompt is None:
+        return ModelPathResult(surviving, budget_shed, None, "prompt_budget", None, True, None)
+
+    ids = [c.student_id for c in surviving]
+    grammar = grammar_mod.build_grammar(txn_id, ids, ALLOWED_CODES)
+    n_predict = min(OUTPUT_MAX, CONTEXT_CAP - counter.count(raw_prompt) - SAFETY_MARGIN)
+    try:
+        raw = run_inference(backend, raw_prompt, grammar, n_predict)
+    except BackendTransportError:
+        return ModelPathResult(surviving, budget_shed, None, "transport", None, True, None)
+
+    outcome = schema_mod.validate_output(raw, txn_id, ids, ALLOWED_CODES)
+    if not outcome.ok:
+        return ModelPathResult(surviving, budget_shed, None, "schema", outcome.reason, True, None)
+
+    data = outcome.data
+    allocs = data.get("candidate_allocations", [])
+    chosen_id = allocs[0]["student_id"] if allocs else None
+    model_events, dry_ok = [], True
+    if chosen_id:
+        for a in allocs:
+            evs, _ = distribute.distribute(conn, txn_id, a["student_id"], a["amount_minor"], "model")
+            model_events.extend(evs)
+        dry_ok = constraints.validate(conn, txn, model_events).ok   # dry-run = feature, NOT a post
+    return ModelPathResult(surviving, budget_shed, data, None, None, dry_ok, chosen_id, model_events)
+
+
 def reconcile(conn, txn_id, config: Config | None = None, backend=None,
               tokenizer_path: str | None = None) -> str:
     config = config or Config()
@@ -57,41 +110,19 @@ def reconcile(conn, txn_id, config: Config | None = None, backend=None,
     if backend is None:
         repo.set_routing_state(conn, txn_id, "unmatched")
         return "unmatched"
-    cands = candidates.generate(conn, txn)
-    if not cands:
+
+    r = run_model_path(conn, txn, backend, tokenizer_path)
+    if r.failure == "no_candidates":
         repo.set_routing_state(conn, txn_id, "unmatched")
         return "unmatched"
-
-    counter = get_token_counter(tokenizer_path)
-    raw_prompt, surviving = prompt_mod.build(txn, cands, counter, ALLOWED_CODES)
-    if raw_prompt is None:
+    if r.failure == "prompt_budget":
         return _store_review(conn, txn_id, "llm", ReasonCode.PROMPT_BUDGET_EXCEEDED, "budget exceeded")
-
-    ids = [c.student_id for c in surviving]
-    grammar = grammar_mod.build_grammar(txn_id, ids, ALLOWED_CODES)
-    n_predict = min(OUTPUT_MAX, CONTEXT_CAP - counter.count(raw_prompt) - SAFETY_MARGIN)
-    try:
-        raw = run_inference(backend, raw_prompt, grammar, n_predict)
-    except BackendTransportError:
+    if r.failure == "transport":
         return _store_review(conn, txn_id, "llm", ReasonCode.INFERENCE_UNAVAILABLE, "backend down")
+    if r.failure == "schema":   # content-invalid -> review immediately (NO retry; temp 0 is deterministic)
+        return _store_review(conn, txn_id, "llm", ReasonCode.SCHEMA_INVALID, r.schema_reason)
 
-    # Content-invalid -> review immediately (NO retry; temp 0 is deterministic).
-    outcome = schema_mod.validate_output(raw, txn_id, ids, ALLOWED_CODES)
-    if not outcome.ok:
-        return _store_review(conn, txn_id, "llm", ReasonCode.SCHEMA_INVALID, outcome.reason)
-
-    data = outcome.data
-    allocs = data.get("candidate_allocations", [])
-    chosen_id = allocs[0]["student_id"] if allocs else None
-    dry_ok = True
-    if chosen_id:
-        events = []
-        for a in allocs:
-            evs, _ = distribute.distribute(conn, txn_id, a["student_id"], a["amount_minor"], "model")
-            events.extend(evs)
-        dry_ok = constraints.validate(conn, txn, events).ok   # dry-run = feature, NOT a post
-    feats = features.extract(txn, surviving, data, dry_ok, chosen_id,
-                             budget_shed=(len(surviving) < len(cands)))
+    feats = features.extract(txn, r.surviving, r.data, r.dry_ok, r.chosen_id, budget_shed=r.budget_shed)
     ModelConfidencePolicy().route(feats)   # v1 -> review
     return _store_review(conn, txn_id, "llm", ReasonCode.MODEL_RANKED,
-                         data.get("explanation", ""), json.dumps(feats))
+                         r.data.get("explanation", ""), json.dumps(feats))
