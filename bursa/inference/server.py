@@ -1,5 +1,6 @@
 import json
 import subprocess
+import time
 import urllib.request
 import urllib.error
 
@@ -20,6 +21,8 @@ class LlamaServer:
         self._proc = None
 
     def start(self):
+        if self._proc is not None and self._proc.poll() is None:
+            return
         self._proc = subprocess.Popen(self.args, stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
 
@@ -30,9 +33,24 @@ class LlamaServer:
         except (urllib.error.URLError, TimeoutError, OSError):
             return False
 
+    def wait_until_ready(self, timeout: float = 30.0) -> bool:
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            if self.health():
+                return True
+            if self._proc is not None and self._proc.poll() is not None:
+                return False
+            time.sleep(0.1)
+        return False
+
     def stop(self):
         if self._proc is not None:
             self._proc.terminate()
+            try:
+                self._proc.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self._proc.kill()
+                self._proc.wait(timeout=5)
             self._proc = None
 
     def __enter__(self):

@@ -4,9 +4,12 @@ Cross-reference: [`agent-m-verification.md`](agent-m-verification.md). **This on
 ALL C2 inputs.** Benchmarks count only on i5-class hardware at 4 threads (Prime Directive 5).
 
 ## 0. Prereqs
-- `bash download_model.sh --baselines` — fetches the zero-shot Qwen3-1.7B Q4_K_M primary,
-  the Qwen3-0.6B comparison model, and the tokenizer. Verify and pin the TOFU checksums it prints.
-- Pin the llama.cpp build (see the Agent M runbook for the exact commit).
+- `uv pip install --python .venv/bin/python -r requirements-profiler.txt` installs the pinned
+  official profiler.
+- `bash download_model.sh --baselines` fetches and verifies the revision-pinned zero-shot
+  Qwen3-1.7B Q4_K_M primary, Qwen3-0.6B comparison model, and tokenizer.
+- Use the llama.cpp build recorded in `toolchain.lock.json`, or update that lock and tag every
+  result if the i5 laptop requires a different compatible build.
 
 ## 1. Agent M assertions
 Run the Agent M verification runbook's assertions first (N=1000 distinct inputs, `/no_think`

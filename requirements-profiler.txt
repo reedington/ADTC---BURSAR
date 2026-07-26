@@ -1,0 +1,1 @@
+adtc-profiler @ git+https://github.com/Africa-Deep-Tech-Foundation/adtc-profiler.git@e26411ca11ebc3538f1c8e650ddd5bc1870e7b73

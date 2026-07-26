@@ -1,6 +1,7 @@
 import hashlib
 from bursa import db as dbmod, money, normalize, repository as repo
 from bursa.errors import ImportRowError
+from bursa.importers import batches
 from bursa.models import CanonicalTransaction
 
 
@@ -24,7 +25,10 @@ def _content_key(row) -> str:
                      " ".join(normalize.narration_tokens(row.get("narration")))])
 
 
-def import_statement(conn, rows, source_file) -> dict:
+def import_statement(conn, rows, source_file, column_mapping=None) -> dict:
+    original_rows = list(rows)
+    rows = batches.mapped_rows(original_rows, column_mapping)
+    batch_id = batches.start(conn, source_file, "statement", column_mapping)
     accepted = duplicate = 0
     errors, near_dups = [], []
     seen_occurrence: dict[str, int] = {}
@@ -67,7 +71,7 @@ def import_statement(conn, rows, source_file) -> dict:
         tx = CanonicalTransaction(transaction_id=txn_id, source="bank_csv", reference=ref,
             raw_reference=row.get("reference") or None, posted_at=row.get("date", ""),
             payer_name=row.get("payer"), narration=row.get("narration"),
-            amount_minor=amount, direction="credit", dedup_hash=dedup)
+            amount_minor=amount, direction="credit", dedup_hash=dedup, batch_id=batch_id)
         with dbmod.transaction(conn):
             repo.insert_transaction(conn, tx)
             if is_near_dup:
@@ -76,5 +80,15 @@ def import_statement(conn, rows, source_file) -> dict:
         existing_content.add(content)
         accepted += 1
 
-    return {"accepted": accepted, "duplicate": duplicate, "rejected": len(errors),
-            "errors": errors, "near_duplicates": near_dups}
+    return batches.finish(
+        conn,
+        batch_id,
+        {
+            "accepted": accepted,
+            "duplicate": duplicate,
+            "rejected": len(errors),
+            "errors": errors,
+            "near_duplicates": near_dups,
+        },
+        original_rows,
+    )

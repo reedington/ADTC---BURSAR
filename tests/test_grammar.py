@@ -9,6 +9,12 @@ def test_grammar_contains_candidate_ids_only():
     assert "TXN-1" in g                 # transaction id fixed as a literal
     assert "NAME_ALIAS_MATCH" in g
     assert "root ::=" in g
+    assert "student-id ::=" in g
+    assert "student_id ::=" not in g
+    assert "{0,240}" in g
+    assert 'short-list ::= short-string (ws "," ws short-string){0,2}' in g
+    assert 'alloc-list ::= alloc (ws "," ws alloc){0,1}' in g
+    assert "ws ::= [ \\t\\n]?" in g
 
 
 def test_grammar_ids_equal_input_ids():

@@ -24,12 +24,13 @@ def _alloc(amount, tid="TXN-1"):
         actor="e", source="d", evidence_ref=tid, decision_path="auto")
 
 
-def test_br04_unmatched_never_posts(db, seeded_term_student_fee):
+def test_br04_candidate_bearing_without_model_routes_review_and_never_posts(
+        db, seeded_term_student_fee):
     ledger.create_charge(db, "CHG-1", "STU-1", "FEE-TUITION", "T1", 5_000_000, "i", "f", "B")
     repo.insert_transaction(db, CanonicalTransaction(transaction_id="TXN-1", source="bank_csv",
         posted_at="2026-02-14T00:00:00+00:00", amount_minor=5_000_000, direction="credit",
         narration="no id here", dedup_hash="h1"))
-    assert pipeline.reconcile(db, "TXN-1") == "unmatched"
+    assert pipeline.reconcile(db, "TXN-1") == "review"
     assert repo.live_events(db, transaction_id="TXN-1") == []  # BR-04: nothing posted
 
 

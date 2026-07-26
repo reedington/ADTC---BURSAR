@@ -61,3 +61,13 @@ def test_reverse_of_reversal_blocked(db, charged):
     rid = ledger.reverse(db, aid, "bursar", "mistake")
     with pytest.raises(InvariantViolation):
         ledger.reverse(db, rid, "bursar", "oops")
+
+
+def test_same_event_cannot_be_reversed_twice(db, charged):
+    _txn(db, 5_000_000)
+    aid = ledger.post(
+        db, "TXN-1", [_alloc(5_000_000)], "bursar", "bank", "TXN-1", "review"
+    )[0]
+    ledger.reverse(db, aid, "bursar", "mistake")
+    with pytest.raises(InvariantViolation):
+        ledger.reverse(db, aid, "bursar", "duplicate correction")

@@ -1,9 +1,13 @@
 from bursa import db as dbmod, normalize
 from bursa.errors import ImportRowError
+from bursa.importers import batches
 
 
-def import_students(conn, rows, source_file) -> dict:
-    accepted, errors = 0, []
+def import_students(conn, rows, source_file, column_mapping=None) -> dict:
+    original_rows = list(rows)
+    rows = batches.mapped_rows(original_rows, column_mapping)
+    batch_id = batches.start(conn, source_file, "students", column_mapping)
+    accepted, duplicate, errors = 0, 0, []
     for i, row in enumerate(rows, start=1):
         sid = (row.get("student_id") or "").strip()
         name = (row.get("name") or "").strip()
@@ -13,10 +17,15 @@ def import_students(conn, rows, source_file) -> dict:
         if not name:
             errors.append(ImportRowError(i, "name", "missing"))
             continue
+        if conn.execute(
+            "SELECT 1 FROM students WHERE student_id=?", (sid,)
+        ).fetchone() is not None:
+            duplicate += 1
+            continue
         try:
             with dbmod.transaction(conn):
                 conn.execute(
-                    "INSERT OR IGNORE INTO students "
+                    "INSERT INTO students "
                     "(student_id, name, normalized_name, class, term_id) VALUES (?,?,?,?,?)",
                     (sid, name, normalize.normalize_name(name), row.get("class"),
                      row.get("term_id")))
@@ -29,4 +38,14 @@ def import_students(conn, rows, source_file) -> dict:
             accepted += 1
         except Exception as exc:  # FK / integrity
             errors.append(ImportRowError(i, "student_id", str(exc)))
-    return {"accepted": accepted, "rejected": len(errors), "errors": errors}
+    return batches.finish(
+        conn,
+        batch_id,
+        {
+            "accepted": accepted,
+            "duplicate": duplicate,
+            "rejected": len(errors),
+            "errors": errors,
+        },
+        original_rows,
+    )

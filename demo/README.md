@@ -21,4 +21,13 @@ The statement demonstrates:
 - an ambiguous sibling transfer;
 - a nickname/misspelling case that must remain reviewable.
 
-The broader authored gold set in `data/gold/` covers every evaluation family.
+The broader authored gold set in `data/gold/` covers every evaluation family. Any case can become
+a persistent, fictional demo database without hand-editing fixtures:
+
+```bash
+.venv/bin/bursa-demo-case data/gold/gold-0003-sibling-split-en.yaml \
+  --output data/local/sibling-demo.db
+BURSA_DB_PATH=data/local/sibling-demo.db .venv/bin/bursa-web
+```
+
+Use a new output path for every run. The command refuses to overwrite an existing ledger.

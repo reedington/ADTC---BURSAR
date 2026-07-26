@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ transaction.transaction_id }} — Bursa</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header class="compact-header">
+      <div>
+        <p class="eyebrow"><a href="/">← RECONCILIATION QUEUE</a></p>
+        <h1>Payment review</h1>
+        <p class="lede">{{ transaction.transaction_id }}</p>
+      </div>
+      <span class="status status-{{ transaction.routing_state }}">{{ transaction.routing_state }}</span>
+    </header>
+
+    <main>
+      {% if message %}<div class="notice success" role="status">{{ message }}</div>{% endif %}
+      {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+
+      <section class="detail-grid">
+        <article class="panel payment-source">
+          <p class="eyebrow">BANK SOURCE OF TRUTH</p>
+          <h2>{{ transaction.amount_display }}</h2>
+          <dl>
+            <div><dt>Payer</dt><dd>{{ transaction.payer_name or 'Unknown' }}</dd></div>
+            <div><dt>Narration</dt><dd>{{ transaction.narration or 'None' }}</dd></div>
+            <div><dt>Reference</dt><dd>{{ transaction.raw_reference or transaction.reference or 'None' }}</dd></div>
+            <div><dt>Posted</dt><dd>{{ transaction.posted_at }}</dd></div>
+            <div><dt>Unapplied</dt><dd>{{ transaction.unapplied_display }}</dd></div>
+          </dl>
+        </article>
+        <article class="panel safety-card">
+          <p class="eyebrow">SAFETY BOUNDARY</p>
+          <h2>{{ 'Local model ready' if model_health.available else 'Human review mode' }}</h2>
+          <p>
+            {% if model_health.available %}
+              The model may rank candidates, but the server rebuilds and validates every ledger event.
+            {% else %}
+              Inference is unavailable. Candidate evidence remains visible and nothing can post without your decision.
+            {% endif %}
+          </p>
+          <form action="/transactions/{{ transaction.transaction_id }}/retry" method="post">
+            <button class="quiet" type="submit">Retry reconciliation</button>
+          </form>
+        </article>
+      </section>
+
+      {% for proposal in proposals %}
+      <section class="panel proposal {{ 'current' if proposal.status == 'pending' else '' }}">
+        <div class="panel-head">
+          <div>
+            <p class="eyebrow">{{ proposal.source|upper }} PROPOSAL · {{ proposal.created_at[:19]|replace('T', ' ') }}</p>
+            <h2>{{ proposal.status|replace('_', ' ')|title }}</h2>
+          </div>
+          <div class="proposal-meta">
+            <span>Confidence {{ proposal.confidence_display }}</span>
+            {% if proposal.failure_reason %}<span class="failure">{{ proposal.failure_reason }}</span>{% endif %}
+          </div>
+        </div>
+
+        <p class="explanation">{{ proposal.explanation or 'No model explanation was supplied.' }}</p>
+        {% if proposal.ambiguities %}
+          <ul class="ambiguities">{% for ambiguity in proposal.ambiguities %}<li>{{ ambiguity }}</li>{% endfor %}</ul>
+        {% endif %}
+
+        {% if proposal.candidates %}
+        <form action="/proposals/{{ proposal.proposal_id }}/approve" method="post">
+          <div class="candidate-grid">
+            {% for candidate in proposal.candidates %}
+              {% set proposed = namespace(value='') %}
+              {% for allocation in proposal.allocations %}
+                {% if allocation.student_id == candidate.student_id %}
+                  {% set proposed.value = allocation.amount_input %}
+                {% endif %}
+              {% endfor %}
+              <article class="candidate">
+                <div class="candidate-head">
+                  <div><strong>{{ candidate.name }}</strong><small>{{ candidate.student_id }}</small></div>
+                  <span class="score">Evidence {{ candidate.score }}</span>
+                </div>
+                <p>
+                  {% if candidate.guardians %}Guardian: {{ candidate.guardians|join(', ') }}{% endif %}
+                  {% if candidate.aliases %}<br>Aliases: {{ candidate.aliases|join(', ') }}{% endif %}
+                </p>
+                {% if candidate.fired_signals %}
+                <div class="signals">
+                  {% for signal, weight in candidate.fired_signals.items() %}
+                    <span>{{ signal|replace('_', ' ') }} +{{ weight }}</span>
+                  {% endfor %}
+                </div>
+                {% endif %}
+                <label for="amount_{{ candidate.student_id }}">Allocate (NGN)</label>
+                <input
+                  id="amount_{{ candidate.student_id }}"
+                  name="amount_{{ candidate.student_id }}"
+                  inputmode="decimal"
+                  value="{{ proposed.value }}"
+                  placeholder="0.00"
+                  {{ 'disabled' if proposal.status != 'pending' else '' }}
+                >
+              </article>
+            {% endfor %}
+          </div>
+
+          {% if proposal.status == 'pending' %}
+          <div class="decision-bar">
+            <label for="credit_holder_{{ proposal.proposal_id }}">
+              Explicitly turn all remainder into credit
+              <select id="credit_holder_{{ proposal.proposal_id }}" name="credit_holder">
+                <option value="">No — keep remainder unapplied</option>
+                {% for candidate in proposal.candidates %}
+                  <option value="{{ candidate.student_id }}">{{ candidate.name }} ({{ candidate.student_id }})</option>
+                {% endfor %}
+              </select>
+            </label>
+            <div class="decision-actions">
+              <button type="submit">Approve allocations</button>
+            </div>
+          </div>
+          {% endif %}
+        </form>
+        {% elif proposal.status == 'pending' %}
+          <p class="empty">No candidate exists to approve. Retry after correcting setup data, or reject this proposal.</p>
+        {% endif %}
+
+        {% if proposal.status == 'pending' %}
+        <form class="reject-form" action="/proposals/{{ proposal.proposal_id }}/reject" method="post">
+          <button class="danger" type="submit">Reject proposal</button>
+        </form>
+        {% else %}
+          <p class="decision-record">
+            Decision: <strong>{{ proposal.decision or proposal.status }}</strong>
+            {% if proposal.decision_actor %} by {{ proposal.decision_actor }}{% endif %}
+            {% if proposal.decision_at %} at {{ proposal.decision_at[:19]|replace('T', ' ') }}{% endif %}
+          </p>
+        {% endif %}
+      </section>
+      {% else %}
+      <section class="panel empty-state">
+        <h2>No proposal yet</h2>
+        <p>Run reconciliation to use the deterministic fast path or assemble a reviewable candidate snapshot.</p>
+        <form action="/transactions/{{ transaction.transaction_id }}/reconcile" method="post">
+          <button type="submit">Reconcile payment</button>
+        </form>
+      </section>
+      {% endfor %}
+
+      <section class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">APPEND-ONLY AUDIT</p><h2>Financial events</h2></div>
+          <p>Corrections add compensating events. Original history is never edited.</p>
+        </div>
+        <div class="audit-list">
+          {% for event in audit %}
+          <article>
+            <div>
+              <strong>#{{ event.event_id }} · {{ event.event_type|replace('_', ' ')|title }}</strong>
+              <small>{{ event.student_id or event.holder or 'System' }} · {{ event.decision_path }} · {{ event.actor }}</small>
+            </div>
+            <div class="audit-amount">
+              <strong>{{ event.amount_display }}</strong>
+              {% if event.event_type in ['allocation', 'credit_grant'] and not event.is_reversed %}
+              <form action="/ledger/events/{{ event.event_id }}/reverse" method="post">
+                <label class="sr-only" for="reason_{{ event.event_id }}">Reversal reason</label>
+                <input id="reason_{{ event.event_id }}" name="reason" placeholder="Reason required" required>
+                <button class="danger quiet" type="submit">Reverse</button>
+              </form>
+              {% elif event.is_reversed %}<span class="done">Reversed</span>{% endif %}
+            </div>
+          </article>
+          {% else %}
+          <p class="empty">Nothing has been posted for this payment.</p>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

@@ -13,10 +13,10 @@ Bursa turns messy bank statements and payment evidence into an accurate, auditab
 | Phase 1 | **Financial Core** (data model, imports, dedup, matcher, INV-01..10, append-only ledger) | ✅ code complete; C1 hardware prerequisites still pending |
 | Phase 2A | **Inference path** (candidate generator, prompt, GBNF, validation, fail-safe routing) | ✅ code complete; real-GGUF 1,000-run acceptance pending |
 | Phase 2B | **Data & Evaluation** | ✅ harness complete; 14/14 authored scenario families, English + Pidgin, both hard gates exercised in CI |
-| Demo | **Offline local web workflow** | ✅ CSV imports, transaction routing, balances, audit-event count; visually verified |
+| Demo | **Offline local web workflow** | ✅ setup imports, bank mapping, queues, review/edit/split/reject, explicit credit, audit and reversals; visually verified |
 | — | Baselines / C2 pivot (1.7B vs 0.6B), Phase 3 fine-tune + calibrator training | ⏳ upcoming |
 
-**Test suite:** 178 passing, 1 skipped (the tokenizer/model-bound check runs during the target
+**Test suite:** 193 passing, 1 skipped (the tokenizer/model-bound check runs during the target
 hardware session). Passing fake-backend tests validate mechanics and safety seams, not model
 quality or performance.
 
@@ -80,6 +80,19 @@ The app seeds fictional records on first launch. CSV fixtures are also available
 The interface binds to loopback only, uses a local SQLite database, and has no analytics or
 external telemetry.
 
+To enable local-model review, point Bursa at the pinned files:
+
+```bash
+export BURSA_MODEL_PATH=model/qwen3-1.7b-q4_k_m.gguf
+export BURSA_TOKENIZER_PATH=model/tokenizer.json
+export BURSA_ACTOR=bursar
+.venv/bin/bursa-web
+```
+
+If the model is missing or unhealthy, Bursa continues serving imports, deterministic exact
+matches, review evidence, and the ledger. Candidate-bearing ambiguous payments route to
+`INFERENCE_UNAVAILABLE` review; only genuine no-candidate payments become unmatched.
+
 ## Key commands
 
 | Command | Purpose |
@@ -87,9 +100,11 @@ external telemetry.
 | `.venv/bin/pytest -q` | run the test suite |
 | `python -m bursa_eval.goldcheck data/gold` | validate gold cases (schema + financial invariants) + coverage report |
 | `python -m bursa_eval.goldnew --family sibling_split --lang en --difficulty hard` | scaffold a new gold case |
-| `bash download_model.sh` | fetch the GGUF (zero-shot Qwen3-1.7B Q4_K_M for now) + tokenizer, TOFU checksums |
+| `bash download_model.sh` | fetch the revision- and checksum-pinned zero-shot Qwen3-1.7B Q4_K_M + tokenizer |
 | `bash download_model.sh --baselines` | additionally fetch the Qwen3-0.6B C2 comparison model |
 | `python -m bursa_eval.harness.scorecard --backend fake` | run the eval harness offline; emits the scorecard + per-case records (exits non-zero if a safety gate fails) |
+| `bash scripts/run_i5_checkpoint.sh` | on the physical Intel i5 only: run both real scorecards, 1,000-input safety gates, llama-bench, and ten profiler passes |
+| `bursa-demo-case data/gold/<case>.yaml --output data/local/<demo>.db` | materialize one fictional authored scenario as a persistent browser-test database |
 | `python -m bursa_eval.submission_check --gate1` | fail fast on missing identity, profiler, report, prompt, license, screenshot, or video artifacts |
 
 ## Safety invariants (execution plan §3.1)

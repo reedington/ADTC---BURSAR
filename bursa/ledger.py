@@ -20,23 +20,31 @@ def create_charge(conn, charge_id, student_id, fee_id, term_id, amount_minor,
         return repo.insert_ledger_event(conn, ev, _now())
 
 
+def post_within_transaction(conn, txn_id, proposed: list[LedgerEventInput], actor, source,
+                            evidence_ref, decision_path) -> list[int]:
+    """Validate and append while the caller owns the SQLite transaction."""
+    txn = repo.get_transaction(conn, txn_id)
+    result = constraints.validate(conn, txn, proposed)
+    if not result.ok:
+        raise InvariantViolation(result.violations)
+    ids = []
+    for ev in proposed:
+        stamped = ev.model_copy(update={
+            "actor": ev.actor or actor, "source": ev.source or source,
+            "evidence_ref": ev.evidence_ref or evidence_ref,
+            "decision_path": ev.decision_path or decision_path})
+        ids.append(repo.insert_ledger_event(conn, stamped, _now()))
+    return ids
+
+
 def post(conn, txn_id, proposed: list[LedgerEventInput], actor, source,
          evidence_ref, decision_path) -> list[int]:
     """Validate the proposed events against cumulative state, then append them.
     All-or-nothing: on violation, rollback and raise InvariantViolation (INV-10)."""
     with dbmod.transaction(conn):
-        txn = repo.get_transaction(conn, txn_id)
-        result = constraints.validate(conn, txn, proposed)
-        if not result.ok:
-            raise InvariantViolation(result.violations)
-        ids = []
-        for ev in proposed:
-            stamped = ev.model_copy(update={
-                "actor": ev.actor or actor, "source": ev.source or source,
-                "evidence_ref": ev.evidence_ref or evidence_ref,
-                "decision_path": ev.decision_path or decision_path})
-            ids.append(repo.insert_ledger_event(conn, stamped, _now()))
-        return ids
+        return post_within_transaction(
+            conn, txn_id, proposed, actor, source, evidence_ref, decision_path
+        )
 
 
 def reverse(conn, event_id, actor, reason) -> int:
@@ -46,6 +54,10 @@ def reverse(conn, event_id, actor, reason) -> int:
         raise InvariantViolation(["INV-08:unknown-event"])
     if target["event_type"] == EventType.REVERSAL:
         raise InvariantViolation(["INV-08:no-reversal-of-reversal"])
+    if conn.execute(
+        "SELECT 1 FROM ledger_events WHERE reverses_event_id=?", (event_id,)
+    ).fetchone():
+        raise InvariantViolation(["INV-08:already-reversed"])
     with dbmod.transaction(conn):
         ev = LedgerEventInput(event_type=EventType.REVERSAL,
             transaction_id=target["transaction_id"], charge_id=target["charge_id"],

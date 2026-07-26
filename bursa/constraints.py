@@ -33,6 +33,11 @@ def validate(conn, txn, proposed: list[LedgerEventInput]) -> ValidationResult:
         if ev.student_id is not None and not repo.student_exists(conn, ev.student_id):
             v.append("INV-04")
             break
+        if ev.event_type == "credit_grant" and (
+            not ev.holder or not repo.holder_exists(conn, ev.holder)
+        ):
+            v.append("INV-04")
+            break
 
     # INV-01: transaction capacity (allocations + credit grants funded by txn)
     txn_id = txn["transaction_id"]

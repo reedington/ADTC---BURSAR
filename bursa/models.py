@@ -15,6 +15,8 @@ class RoutingState(StrEnum):
     AUTO = "auto"
     REVIEW = "review"
     UNMATCHED = "unmatched"
+    APPROVED = "approved"
+    REVERSED = "reversed"
 
 
 class RecommendedAction(StrEnum):

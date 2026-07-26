@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ student.name }} — Bursa</title>
+    <link rel="stylesheet" href="{{ url_for('static', path='/app.css') }}">
+  </head>
+  <body>
+    <header class="compact-header">
+      <div>
+        <p class="eyebrow"><a href="/">← STUDENT LEDGER</a></p>
+        <h1>{{ student.name }}</h1>
+        <p class="lede">{{ student.student_id }} · {{ student.class or 'No class' }}</p>
+      </div>
+      <span class="status status-approved">{{ status }}</span>
+    </header>
+    <main>
+      <section class="metrics" aria-label="Student summary">
+        <article><span>Fee items</span><strong>{{ charges|length }}</strong></article>
+        <article><span>Credit</span><strong>{{ credit_display }}</strong></article>
+        <article><span>Status</span><strong>{{ status|replace('_', ' ')|title }}</strong></article>
+        <article><span>Audit events</span><strong>{{ events|length }}</strong></article>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">CHARGE LEDGER</p><h2>Balances by fee item</h2></div>
+          <p>Every total is reconstructed from live append-only events.</p>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Charge</th><th>Fee</th><th>Billed</th><th>Paid</th><th>Balance</th></tr></thead>
+            <tbody>
+              {% for charge in charges %}
+              <tr>
+                <td>{{ charge.charge_id }}</td><td>{{ charge.fee_id }}</td>
+                <td class="money">{{ charge.billed_display }}</td>
+                <td class="money">{{ charge.paid_display }}</td>
+                <td class="money">{{ charge.balance_display }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </section>
+      <section class="panel">
+        <div class="panel-head">
+          <div><p class="eyebrow">AUDIT HISTORY</p><h2>Student events</h2></div>
+        </div>
+        <div class="audit-list">
+          {% for event in events %}
+          <article>
+            <div><strong>#{{ event.event_id }} · {{ event.event_type|replace('_', ' ')|title }}</strong><small>{{ event.created_at }} · {{ event.actor }}</small></div>
+            <div class="audit-amount"><strong>{{ event.amount_display }}</strong></div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

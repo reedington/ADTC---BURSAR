@@ -40,3 +40,12 @@ def format_naira(minor: int) -> str:
     naira, kobo = divmod(abs(minor), MINOR_UNITS_PER_NAIRA)
     sign = "-" if minor < 0 else ""
     return f"{sign}₦{naira:,}.{kobo:02d}"
+
+
+def format_naira_input(minor: int) -> str:
+    """Return a plain decimal string for an editable NGN field without using float."""
+    if not isinstance(minor, int):
+        raise ValueError("format_naira_input requires an int (minor units)")
+    naira, kobo = divmod(abs(minor), MINOR_UNITS_PER_NAIRA)
+    sign = "-" if minor < 0 else ""
+    return f"{sign}{naira}.{kobo:02d}"

@@ -1,3 +1,4 @@
+import json
 import sqlite3
 from bursa.models import CanonicalTransaction, LedgerEventInput
 
@@ -66,6 +67,12 @@ def student_exists(conn, student_id) -> bool:
                         (student_id,)).fetchone() is not None
 
 
+def holder_exists(conn, holder_id) -> bool:
+    return student_exists(conn, holder_id) or conn.execute(
+        "SELECT 1 FROM guardians WHERE guardian_id = ?", (holder_id,)
+    ).fetchone() is not None
+
+
 def charges_for_student(conn, student_id) -> list[sqlite3.Row]:
     return conn.execute(
         "SELECT c.*, f.priority FROM charges c JOIN fee_items f ON c.fee_id = f.fee_id "
@@ -73,10 +80,111 @@ def charges_for_student(conn, student_id) -> list[sqlite3.Row]:
         (student_id,)).fetchall()
 
 
-def insert_proposal(conn, proposal_id, transaction_id, source, action, confidence,
-                    explanation, created_at) -> None:
+def insert_proposal(
+    conn,
+    proposal_id,
+    transaction_id,
+    source,
+    action,
+    confidence,
+    explanation,
+    created_at,
+    *,
+    features=None,
+    candidates=None,
+    evidence=None,
+    raw_output=None,
+    failure_reason=None,
+    ambiguities=None,
+    allocations=None,
+    status="pending",
+) -> None:
     conn.execute(
         "INSERT INTO proposals (proposal_id, transaction_id, source, recommended_action, "
-        "confidence, explanation, created_at) VALUES (?,?,?,?,?,?,?)",
-        (proposal_id, transaction_id, source, str(action), confidence, explanation,
-         created_at))
+        "confidence, explanation, status, created_at, features, candidate_snapshot_json, "
+        "evidence_snapshot_json, raw_output_json, failure_reason, ambiguities_json, "
+        "last_inference_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
+        (
+            proposal_id,
+            transaction_id,
+            source,
+            str(action),
+            confidence,
+            explanation,
+            status,
+            created_at,
+            json.dumps(features, sort_keys=True) if isinstance(features, (dict, list)) else features,
+            json.dumps(candidates or [], sort_keys=True),
+            json.dumps(evidence or {}, sort_keys=True),
+            raw_output,
+            failure_reason,
+            json.dumps(ambiguities or [], sort_keys=True),
+            created_at if source == "llm" else None,
+        ),
+    )
+    for allocation in allocations or []:
+        conn.execute(
+            "INSERT INTO proposal_allocations "
+            "(proposal_id, student_id, amount_minor, reason_codes) VALUES (?,?,?,?)",
+            (
+                proposal_id,
+                allocation["student_id"],
+                allocation["amount_minor"],
+                json.dumps(allocation.get("reason_codes", []), sort_keys=True),
+            ),
+        )
+
+
+def get_proposal(conn, proposal_id) -> sqlite3.Row | None:
+    return conn.execute(
+        "SELECT * FROM proposals WHERE proposal_id = ?", (proposal_id,)
+    ).fetchone()
+
+
+def proposals_for_transaction(conn, transaction_id) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM proposals WHERE transaction_id = ? ORDER BY created_at DESC, proposal_id",
+        (transaction_id,),
+    ).fetchall()
+
+
+def proposal_allocations(conn, proposal_id) -> list[sqlite3.Row]:
+    return conn.execute(
+        "SELECT * FROM proposal_allocations WHERE proposal_id = ? ORDER BY id",
+        (proposal_id,),
+    ).fetchall()
+
+
+def supersede_pending_proposals(conn, transaction_id) -> None:
+    conn.execute(
+        "UPDATE proposals SET status='superseded' "
+        "WHERE transaction_id=? AND status='pending'",
+        (transaction_id,),
+    )
+
+
+def record_proposal_decision(
+    conn,
+    proposal_id,
+    decision,
+    actor,
+    decided_at,
+    allocations,
+    unapplied_minor,
+    credit_holder=None,
+) -> None:
+    conn.execute(
+        "UPDATE proposals SET status=?, decision=?, decision_actor=?, decision_at=?, "
+        "decision_allocations_json=?, unapplied_minor=?, credit_holder=? "
+        "WHERE proposal_id=?",
+        (
+            "approved" if decision == "approve" else "rejected",
+            decision,
+            actor,
+            decided_at,
+            json.dumps(allocations or [], sort_keys=True),
+            unapplied_minor,
+            credit_holder,
+            proposal_id,
+        ),
+    )

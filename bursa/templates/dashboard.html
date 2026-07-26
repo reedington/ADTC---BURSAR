@@ -10,65 +10,70 @@
     <header>
       <div>
         <p class="eyebrow">OFFLINE • LOCAL LEDGER • HUMAN REVIEW</p>
-        <h1>Bursa</h1>
+        <h1><a href="/">Bursa</a></h1>
         <p class="lede">School-fee reconciliation that keeps the model away from the ledger.</p>
       </div>
-      <div class="offline"><span></span> Offline mode</div>
+      <div class="health-stack">
+        <div class="offline"><span></span> Offline mode</div>
+        <div class="model-state {{ 'ready' if model_health.available else 'waiting' }}">
+          Model {{ 'ready' if model_health.available else 'unavailable — safe review mode' }}
+        </div>
+      </div>
     </header>
 
     <main>
-      <section class="metrics" aria-label="Summary">
-        <article><strong>{{ transactions|length }}</strong><span>bank credits</span></article>
-        <article><strong>{{ students|length }}</strong><span>students</span></article>
-        <article><strong>{{ review_count }}</strong><span>needs review</span></article>
-        <article><strong>{{ event_count }}</strong><span>audit events</span></article>
+      {% if flash %}<div class="notice success" role="status">{{ flash }}</div>{% endif %}
+      {% if error %}<div class="notice error" role="alert">{{ error }}</div>{% endif %}
+
+      <section class="metrics metrics-six" aria-label="Financial summary">
+        <article><span>Billed</span><strong>{{ totals.billed }}</strong></article>
+        <article><span>Received</span><strong>{{ totals.received }}</strong></article>
+        <article><span>Allocated</span><strong>{{ totals.allocated }}</strong></article>
+        <article><span>Outstanding</span><strong>{{ totals.outstanding }}</strong></article>
+        <article><span>Credited</span><strong>{{ totals.credited }}</strong></article>
+        <article><span>Unapplied</span><strong>{{ totals.unapplied }}</strong></article>
       </section>
 
       <section class="panel">
         <div class="panel-head">
           <div>
-            <p class="eyebrow">IMPORT CENTRE</p>
-            <h2>Bring existing records</h2>
-          </div>
-          <p>UTF-8 CSV, maximum 1 MB. Data stays in <code>{{ database }}</code>.</p>
-        </div>
-        <div class="imports">
-          {% for kind, label in [('students', 'Student register'), ('fees', 'Fee schedule'), ('statement', 'Bank statement')] %}
-          <form action="/import/{{ kind }}" method="post" enctype="multipart/form-data">
-            <label for="{{ kind }}">{{ label }}</label>
-            <input id="{{ kind }}" name="file" type="file" accept=".csv,text/csv" required>
-            <button type="submit">Import CSV</button>
-          </form>
-          {% endfor %}
-        </div>
-      </section>
-
-      <section class="panel">
-        <div class="panel-head">
-          <div>
-            <p class="eyebrow">RECONCILIATION</p>
+            <p class="eyebrow">RECONCILIATION QUEUES</p>
             <h2>Payments waiting for a decision</h2>
           </div>
-          <p>Exact IDs use the deterministic path. Ambiguity remains visible.</p>
+          <nav class="filters" aria-label="Transaction filters">
+            {% for value, label in [('', 'All'), ('new', 'New'), ('review', 'Review'), ('unmatched', 'Unmatched'), ('auto', 'Auto'), ('approved', 'Approved'), ('reversed', 'Reversed')] %}
+              <a class="{{ 'active' if state_filter == value else '' }}" href="/{% if value %}?state={{ value }}{% endif %}">{{ label }}</a>
+            {% endfor %}
+          </nav>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Date</th><th>Payer and narration</th><th>Amount</th><th>Status</th><th></th></tr></thead>
+            <thead>
+              <tr><th>Date</th><th>Payer and narration</th><th>Amount</th><th>Unapplied</th><th>Status</th><th></th></tr>
+            </thead>
             <tbody>
             {% for txn in transactions %}
               <tr>
                 <td>{{ txn.posted_at[:10] }}</td>
-                <td><strong>{{ txn.payer_name or 'Unknown payer' }}</strong><small>{{ txn.narration or 'No narration' }}</small></td>
+                <td>
+                  <a class="row-link" href="/transactions/{{ txn.transaction_id }}"><strong>{{ txn.payer_name or 'Unknown payer' }}</strong></a>
+                  <small>{{ txn.narration or 'No narration' }}</small>
+                </td>
                 <td class="money">{{ txn.amount_display }}</td>
+                <td class="money">{{ txn.unapplied_display }}</td>
                 <td><span class="status status-{{ txn.routing_state }}">{{ txn.routing_state }}</span></td>
                 <td>
                   {% if txn.routing_state == 'new' %}
-                  <form action="/reconcile/{{ txn.transaction_id }}" method="post">
+                  <form action="/transactions/{{ txn.transaction_id }}/reconcile" method="post">
                     <button class="quiet" type="submit">Reconcile</button>
                   </form>
-                  {% else %}<span class="done">Recorded</span>{% endif %}
+                  {% else %}
+                  <a class="button quiet" href="/transactions/{{ txn.transaction_id }}">Open</a>
+                  {% endif %}
                 </td>
               </tr>
+            {% else %}
+              <tr><td colspan="6" class="empty">No payments in this queue.</td></tr>
             {% endfor %}
             </tbody>
           </table>
@@ -77,20 +82,95 @@
 
       <section class="panel">
         <div class="panel-head">
+          <div>
+            <p class="eyebrow">SETUP & IMPORT CENTRE</p>
+            <h2>Bring existing records</h2>
+          </div>
+          <p>UTF-8 CSV, maximum 1 MB. Canonical headers work immediately; optional mappings accept bank-specific headers.</p>
+        </div>
+        <div class="imports">
+          {% for kind, label in [
+            ('terms', 'Terms'),
+            ('students', 'Student register'),
+            ('guardians', 'Guardians'),
+            ('relationships', 'Student–guardian links'),
+            ('fees', 'Fee schedule'),
+            ('statement', 'Bank statement')
+          ] %}
+          <details class="import-card" {{ 'open' if kind == 'statement' else '' }}>
+            <summary>{{ label }}</summary>
+            <form action="/import/{{ kind }}" method="post" enctype="multipart/form-data">
+              <label for="{{ kind }}">CSV file</label>
+              <input id="{{ kind }}" name="file" type="file" accept=".csv,text/csv" required>
+              {% if kind == 'statement' %}
+              <details class="mapping">
+                <summary>Bank column mapping (optional)</summary>
+                <div class="mapping-grid">
+                  {% for field in ['reference', 'date', 'amount', 'direction', 'payer', 'narration'] %}
+                  <label>{{ field|replace('_', ' ')|title }}
+                    <input name="map_{{ field }}" value="{{ field }}" autocomplete="off">
+                  </label>
+                  {% endfor %}
+                </div>
+              </details>
+              {% endif %}
+              <button type="submit">Import {{ label }}</button>
+            </form>
+          </details>
+          {% endfor %}
+        </div>
+
+        <h3>Recent imports</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Time</th><th>File</th><th>Type</th><th>Accepted</th><th>Duplicates</th><th>Rejected</th></tr></thead>
+            <tbody>
+            {% for batch in import_batches %}
+              <tr class="{{ 'selected' if selected_batch and selected_batch.batch_id == batch.batch_id else '' }}">
+                <td><a href="/?batch={{ batch.batch_id }}">{{ batch.imported_at[:19]|replace('T', ' ') }}</a></td>
+                <td>{{ batch.source_file }}</td><td>{{ batch.kind }}</td>
+                <td>{{ batch.accepted }}</td><td>{{ batch.duplicate }}</td><td>{{ batch.rejected }}</td>
+              </tr>
+            {% else %}
+              <tr><td colspan="6" class="empty">No imports yet.</td></tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        {% if selected_batch and selected_batch.errors %}
+        <div class="error-list">
+          <h3>Row errors for {{ selected_batch.source_file }}</h3>
+          <ul>
+          {% for item in selected_batch.errors %}
+            <li>Row {{ item.row_number }} · <strong>{{ item.field }}</strong> — {{ item.reason }}</li>
+          {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
           <div><p class="eyebrow">STUDENT LEDGER</p><h2>Balances derived from events</h2></div>
-          <p>No editable status field; every balance reconstructs from the ledger.</p>
+          <p>No editable status field; every balance reconstructs from the append-only ledger.</p>
         </div>
         <div class="student-grid">
           {% for student in students %}
           <article>
-            <div><strong>{{ student.name }}</strong><small>{{ student.student_id }} · {{ student.class or 'No class' }}</small></div>
-            <div class="balance"><strong>{{ student.balance_display }}</strong><span>{{ student.status }}</span></div>
+            <div><a class="row-link" href="/students/{{ student.student_id }}"><strong>{{ student.name }}</strong></a><small>{{ student.student_id }} · {{ student.class or 'No class' }}</small></div>
+            <div class="balance">
+              <strong>{{ student.balance_display }}</strong>
+              {% if student.credit_display != '₦0.00' %}<small>Credit {{ student.credit_display }}</small>{% endif %}
+              <span>{{ student.status }}</span>
+            </div>
           </article>
           {% endfor %}
         </div>
       </section>
     </main>
 
-    <footer>Fictional demonstration data. No cloud dependency or external telemetry.</footer>
+    <footer>
+      Fictional demonstration data. Local database: <code>{{ database }}</code>. No cloud dependency or external telemetry.
+    </footer>
   </body>
 </html>

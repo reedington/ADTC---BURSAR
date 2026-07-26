@@ -1,0 +1,35 @@
+{
+  "adtc_profiler": {
+    "commit": "e26411ca11ebc3538f1c8e650ddd5bc1870e7b73",
+    "version": "0.1.0"
+  },
+  "llama_cpp": {
+    "build": 9850,
+    "commit": "4f31eedb0",
+    "required_tools": [
+      "llama-server",
+      "llama-bench"
+    ]
+  },
+  "models": {
+    "qwen3_0_6b_q4_k_m": {
+      "repo_commit": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+      "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a",
+      "size_bytes": 396705472
+    },
+    "qwen3_1_7b_q4_k_m": {
+      "repo_commit": "d7f544eead698dbd1f15126ef60b45a1e1933222",
+      "sha256": "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897",
+      "size_bytes": 1107409472
+    },
+    "qwen3_1_7b_tokenizer": {
+      "repo_commit": "70d244cc86ccca08cf5af4e1e306ecf908b1ad5e",
+      "sha256": "aeb13307a71acd8fe81861d94ad54ab689df773318809eed3cbe794b4492dae4",
+      "size_bytes": 11422654
+    }
+  },
+  "python": {
+    "minimum": "3.11",
+    "verified_development_version": "3.13.5"
+  }
+}

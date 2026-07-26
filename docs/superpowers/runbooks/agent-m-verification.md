@@ -13,10 +13,9 @@ ADTC standard laptop profile and record results in REPORT.md.
      Q4_K_M (`unsloth/Qwen3-0.6B-GGUF`, ~378 MB) is the C2-pivot baseline (URL in the script
      comments). The tokenizer is Qwen3-1.7B's (`Qwen/Qwen3-1.7B/tokenizer.json`). At Phase 3/4
      the GGUF is repointed to the fine-tuned Bursa-Recon.
-   - **Checksums are trust-on-first-use.** On first download the script prints the computed
-     SHA-256 for each file; verify each against its Hugging Face file page, then set
-     `MODEL_SHA256` / `TOKENIZER_SHA256` and commit the confirmed values. Subsequent runs fail
-     closed on mismatch. (No placeholder hashes are ever committed.)
+   - Upstream repository revisions and SHA-256 values are pinned in `download_model.sh` and
+     `toolchain.lock.json`. Every existing or newly downloaded artifact is verified and the
+     script fails closed on mismatch.
    - Export `QWEN_TOKENIZER_JSON=model/tokenizer.json` so the app AND the token corpus
      over-count test (`tests/test_tokens.py::test_heuristic_overcounts_corpus`) use the exact
      tokenizer.

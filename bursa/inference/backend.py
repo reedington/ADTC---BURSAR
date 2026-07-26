@@ -56,7 +56,9 @@ class LlamaServerBackend:
         """POST to /v1/chat/completions so the GGUF's EMBEDDED chat template is applied
         (no self-applied Qwen template, no grammar). i5-only; exercised via the runbook."""
         body = json.dumps({
-            "messages": [{"role": "user", "content": prompt}], "temperature": 0,
+            "messages": [{"role": "user", "content": prompt}],
+            "temperature": 0,
+            "max_tokens": 512,
         }).encode()
         req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
                                      headers={"Content-Type": "application/json"})

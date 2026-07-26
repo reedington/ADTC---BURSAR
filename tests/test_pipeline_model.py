@@ -41,6 +41,16 @@ def test_model_path_routes_review_and_stores_proposal(db, seeded_term_student_fe
     p = db.execute("SELECT source, features FROM proposals WHERE transaction_id=?", (tid,)).fetchone()
     assert p["source"] == "llm"
     assert json.loads(p["features"])["features_version"] == 1
+    snapshot = db.execute(
+        "SELECT candidate_snapshot_json, raw_output_json FROM proposals "
+        "WHERE transaction_id=?", (tid,)
+    ).fetchone()
+    assert json.loads(snapshot["candidate_snapshot_json"])[0]["student_id"] == "STU-1"
+    assert json.loads(snapshot["raw_output_json"])["transaction_id"] == tid
+    assert db.execute(
+        "SELECT COUNT(*) FROM proposal_allocations WHERE proposal_id="
+        "(SELECT proposal_id FROM proposals WHERE transaction_id=?)", (tid,)
+    ).fetchone()[0] == 1
     assert repo.live_events(db, transaction_id=tid) == []   # nothing posted (v1)
 
 

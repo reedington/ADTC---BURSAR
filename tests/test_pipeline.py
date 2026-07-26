@@ -22,6 +22,23 @@ def test_auto_post_exact_match_posts_and_balances(db, seeded_term_student_fee):
     assert proj.charge_balance(db, "CHG-1") == 0
 
 
+def test_repeated_reconciliation_is_idempotent_after_posting(
+        db, seeded_term_student_fee):
+    _setup(db)
+    tid = _txn(db, "pay STU-1 tuition", 5_000_000)
+    assert pipeline.reconcile(db, tid) == "auto"
+    event_count = len(repo.live_events(db, transaction_id=tid))
+    proposal_count = db.execute(
+        "SELECT COUNT(*) FROM proposals WHERE transaction_id=?", (tid,)
+    ).fetchone()[0]
+
+    assert pipeline.reconcile(db, tid) == "auto"
+    assert len(repo.live_events(db, transaction_id=tid)) == event_count
+    assert db.execute(
+        "SELECT COUNT(*) FROM proposals WHERE transaction_id=?", (tid,)
+    ).fetchone()[0] == proposal_count
+
+
 def test_auto_post_disabled_routes_to_review(db, seeded_term_student_fee):
     _setup(db)
     tid = _txn(db, "pay STU-1 tuition", 5_000_000)
@@ -30,7 +47,18 @@ def test_auto_post_disabled_routes_to_review(db, seeded_term_student_fee):
     assert proj.charge_balance(db, "CHG-1") == 5_000_000  # nothing posted
 
 
-def test_no_candidate_unmatched(db, seeded_term_student_fee):
+def test_candidate_bearing_without_backend_routes_review(db, seeded_term_student_fee):
     _setup(db)
     tid = _txn(db, "no id here", 5_000_000)
-    assert pipeline.reconcile(db, tid) == "unmatched"
+    assert pipeline.reconcile(db, tid) == "review"
+
+
+def test_exact_overpayment_requires_explicit_credit_review(db, seeded_term_student_fee):
+    _setup(db)
+    tid = _txn(db, "pay STU-1 tuition", 6_000_000)
+    assert pipeline.reconcile(db, tid) == "review"
+    assert repo.live_events(db, transaction_id=tid) == []
+    proposal = db.execute(
+        "SELECT failure_reason FROM proposals WHERE transaction_id=?", (tid,)
+    ).fetchone()
+    assert proposal["failure_reason"] == "OVERPAYMENT_REQUIRES_REVIEW"
