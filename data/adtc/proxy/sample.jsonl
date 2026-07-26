@@ -1,0 +1,2 @@
+{"id": "sample-1", "prompt": "What is 12 + 30?", "expected": "42"}
+{"id": "sample-2", "prompt": "Name the largest ocean.", "expected": "Pacific"}
