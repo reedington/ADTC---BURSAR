@@ -2,10 +2,10 @@ import glob
 import sys
 import yaml
 from collections import Counter
-from bursa import ledger, normalize, repository as repo
+from bursa import distribute, ledger, normalize, repository as repo
 from bursa.errors import InvariantViolation
 from bursa_eval import loader
-from bursa_eval.models import GoldCase, SCENARIO_FAMILIES
+from bursa_eval.models import GoldCase, SCENARIO_FAMILIES, naira_to_minor
 
 
 def load_case(path) -> GoldCase:
@@ -48,6 +48,35 @@ def check_case(case: GoldCase) -> list[str]:
     return problems
 
 
+def _alloc_credit_set(events):
+    return {(e.student_id, e.charge_id, e.amount_minor) for e in events}
+
+
+def distribute_divergence(case: GoldCase) -> str | None:
+    """Warn (not fail) when the authored expected split differs from what distribute() produces
+    for the same per-student totals. A perfect model yields distribute()'s natural split, so an
+    authored bursar override makes exact_allocation_accuracy unreachable for this case."""
+    if case.expected.outcome == "duplicate_blocked" or not case.expected.allocations:
+        return None
+    conn = loader.materialize(case)
+    try:
+        txn_id = loader.insert_case_transaction(conn, case)
+        expected = _alloc_credit_set(loader.build_expected_events(conn, case, txn_id))
+        totals = {}
+        for a in case.expected.allocations:
+            totals[a.student_id] = totals.get(a.student_id, 0) + naira_to_minor(a.amount_naira)
+        natural = []
+        for sid, tot in totals.items():
+            evs, _ = distribute.distribute(conn, txn_id, sid, tot, "goldcheck")
+            natural.extend(evs)
+        if _alloc_credit_set(natural) != expected:
+            return (f"authored split diverges from distribute(); "
+                    f"exact_allocation_accuracy unreachable for {case.id}")
+        return None
+    finally:
+        conn.close()
+
+
 def check_dir(path="data/gold") -> int:
     paths = sorted(glob.glob(f"{path}/*.yaml"))
     families, langs, n_abstain, n_nonauto, n_fail = Counter(), Counter(), 0, 0, 0
@@ -69,6 +98,9 @@ def check_dir(path="data/gold") -> int:
                 print(f"FAIL {p}: {prob}")
         else:
             print(f"ok   {p}  [{case.scenario_family}/{case.language}/{case.expected.outcome}]")
+            divergence = distribute_divergence(case)
+            if divergence:
+                print(f"WARN {p}: {divergence}")
 
     total = len(paths)
     print(f"\n{total - n_fail}/{total} valid | families {len(families)}/{len(SCENARIO_FAMILIES)} "
