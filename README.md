@@ -12,10 +12,10 @@ Bursa turns messy bank statements and payment evidence into an accurate, auditab
 |---|---|---|
 | Phase 1 | **Agent F — Financial Core** (data model, imports, dedup, matcher, constraint engine INV-01..10, append-only ledger) | ✅ complete on `main` (checkpoint C1) |
 | Phase 2A | **Agent M — Inference path** (candidate generator, prompt builder, GBNF grammar, schema validation, calibrator v1 — model never auto-posts) | ✅ complete on `main` |
-| Phase 2B | **Agent D — Data & Evaluation** | 🚧 in progress on branch `phase-2b-agent-d` — gold-case schema, validator, and scaffold shipped; synthetic generator + eval harness next |
+| Phase 2B | **Agent D — Data & Evaluation** | 🚧 in progress — **data foundation complete** on `main` (gold-case schema + ledger-backed validator, scaffold, deterministic synthetic generator, leak-free splits, assembly + freeze manifest); **eval harness next** |
 | — | Baselines / C2 pivot (1.7B vs 0.6B), Phase 3 fine-tune + calibrator training | ⏳ upcoming |
 
-**Test suite:** 116 passing (1 skipped — a tokenizer-asset check that runs on i5-class hardware).
+**Test suite:** 142 passing (1 skipped — a tokenizer-asset check that runs on i5-class hardware).
 
 ## Architecture
 
@@ -40,7 +40,10 @@ bursa/            # the application
   features.py, calibrator.py                                  # confidence seam (v1: model → review)
 bursa_eval/       # evaluation & data tooling (Agent D)
   models.py, loader.py, goldcheck.py, goldnew.py              # gold-case schema, validator, scaffold
+  synth/          # deterministic synthetic generator (templates, perturbation, D6 renderers)
+  dataset.py      # near-dup + leak-free splits, assembly, freeze manifest
 data/gold/        # team-authored gold cases (YAML, one per file)
+data/build/       # generated {train,val,test}.jsonl (git-ignored, regenerable from seed + gold)
 docs/             # PRD.md, MODEL_ARCHITECTURE.md, PROJECT_CONTEXT.md
   superpowers/specs/, superpowers/plans/, superpowers/runbooks/
 tests/            # pytest + hypothesis
