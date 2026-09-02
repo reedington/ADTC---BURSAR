@@ -1,5 +1,6 @@
 import json
 from bursa import pipeline, ledger, repository as repo
+from bursa.calibrator import CalibrationArtifact, FEATURE_KEYS, ModelConfidencePolicy
 from bursa.inference.backend import FakeBackend, BackendTransportError
 from bursa.models import CanonicalTransaction
 
@@ -74,3 +75,63 @@ def test_no_candidate_unmatched(db, seeded_term_student_fee):
     # amount matches no outstanding balance, and no name/alias/guardian -> genuinely no candidates
     tid = _txn(db, "zzz", amount=1234, tid="TXN-3", dedup="h3")
     assert pipeline.reconcile(db, tid, backend=FakeBackend(response="{}")) == "unmatched"
+
+
+def _policy(intercept):
+    artifact = CalibrationArtifact(
+        schema_version=1,
+        features_version=1,
+        model_sha256="a" * 64,
+        feature_names=FEATURE_KEYS,
+        means=(0.0,) * len(FEATURE_KEYS),
+        scales=(1.0,) * len(FEATURE_KEYS),
+        intercept=intercept,
+        coefficients=(0.0,) * len(FEATURE_KEYS),
+        auto_threshold=0.9,
+        review_threshold=0.65,
+        auto_enabled=True,
+        fit_positive_count=25,
+        fit_negative_count=25,
+        seed=3407,
+        source_manifest_sha256="b" * 64,
+        threshold_case_count=200,
+        threshold_negative_count=100,
+        threshold_false_positive_count=0,
+    )
+    return ModelConfidencePolicy(artifact)
+
+
+def test_calibrated_model_auto_post_is_server_rebuilt_and_atomic(
+    db, seeded_term_student_fee
+):
+    _setup(db)
+    tid = _txn(db, "chi fees", tid="TXN-AUTO", dedup="auto")
+    backend = FakeBackend(response=_model_json(tid, "STU-1"))
+    assert pipeline.reconcile(
+        db, tid, backend=backend, confidence_policy=_policy(10)
+    ) == "auto"
+    event = repo.live_events(db, transaction_id=tid)[0]
+    assert event["actor"] == "engine"
+    assert event["source"] == "llm_calibrated"
+    proposal = db.execute(
+        "SELECT * FROM proposals WHERE transaction_id=?", (tid,)
+    ).fetchone()
+    assert proposal["status"] == "approved"
+    assert proposal["recommended_action"] == "auto"
+    assert event["evidence_ref"] == proposal["proposal_id"]
+
+
+def test_low_calibrated_score_persists_unmatched_proposal_without_post(
+    db, seeded_term_student_fee
+):
+    _setup(db)
+    tid = _txn(db, "chi fees", tid="TXN-LOW", dedup="low")
+    backend = FakeBackend(response=_model_json(tid, "STU-1"))
+    assert pipeline.reconcile(
+        db, tid, backend=backend, confidence_policy=_policy(-10)
+    ) == "unmatched"
+    assert repo.live_events(db, transaction_id=tid) == []
+    proposal = db.execute(
+        "SELECT recommended_action FROM proposals WHERE transaction_id=?", (tid,)
+    ).fetchone()
+    assert proposal["recommended_action"] == "unmatched"

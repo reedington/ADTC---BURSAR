@@ -13,6 +13,12 @@ from bursa_eval.harness.runner import run_gold_suite
 from bursa_eval.harness.metrics import compute_metrics, evaluate_gates, unexercised_gates
 from bursa_eval.harness.adtc import load_adtc, score_adtc
 from bursa_eval.harness.baremodel import load_bare_prompts, run_bare_suite
+from bursa_eval.repro import (
+    environment_fingerprint,
+    immutable_run_dir,
+    require_clean,
+    sha256_file,
+)
 
 
 def _git_commit():
@@ -93,13 +99,28 @@ def sidebyside(zeroshot_dir, candidate_dir) -> str:
 
 
 def main(argv=None) -> int:
+    argv = list(sys.argv[1:] if argv is None else argv)
+    explicit_run = bool(argv and argv[0] == "run")
+    if explicit_run:
+        argv = argv[1:]
     ap = argparse.ArgumentParser()
+    ap.add_argument("--config", default="configs/scorecard/suites.json")
+    ap.add_argument("--allow-dirty", action="store_true")
+    ap.add_argument(
+        "--suite",
+        choices=["gold", "enterprise", "bare", "stress", "all"],
+        default="all",
+    )
     ap.add_argument("--backend", choices=["fake", "llama"], default="fake")
     ap.add_argument("--out", default="runs")
     ap.add_argument("--label", default="run")
     ap.add_argument("--gold-dir", default="data/gold")
-    ap.add_argument("--adtc", default="data/adtc/proxy/sample.jsonl")
-    ap.add_argument("--adtc-label", default="proxy")
+    ap.add_argument(
+        "--adtc", default="data/adtc/proxy/mmlu_enterprise.jsonl"
+    )
+    ap.add_argument(
+        "--adtc-label", default="internal_mmlu_enterprise_proxy"
+    )
     ap.add_argument("--bare", default="data/bare/prompts.jsonl")
     ap.add_argument("--perf")
     ap.add_argument("--model-path")
@@ -107,6 +128,18 @@ def main(argv=None) -> int:
     ap.add_argument("--diff", nargs=2, metavar=("A", "B"))
     ap.add_argument("--sidebyside", nargs=2, metavar=("ZERO", "CAND"))
     args = ap.parse_args(argv)
+    config = json.loads(open(args.config, encoding="utf-8").read())
+    if (
+        config.get("schema_version") != 1
+        or config.get("stress_inputs") != 1000
+        or config.get("minimum_json_validity") != .995
+    ):
+        ap.error("scorecard configuration does not match the locked safety gate")
+    if explicit_run:
+        try:
+            require_clean(allow_dirty=args.allow_dirty)
+        except RuntimeError as exc:
+            ap.error(str(exc))
 
     if args.diff:
         for row in diff_runs(*args.diff):
@@ -123,22 +156,57 @@ def main(argv=None) -> int:
         from bursa.inference.backend import LlamaServerBackend
         backend = LlamaServerBackend()
 
-    cases = [load_case(p) for p in sorted(glob.glob(os.path.join(args.gold_dir, "*.yaml")))]
-    records = run_gold_suite(cases, backend, args.tokenizer)
+    run_gold = args.suite in ("gold", "all")
+    run_enterprise = args.suite in ("enterprise", "all")
+    run_bare = args.suite in ("bare", "all")
+    run_stress = explicit_run and args.suite in ("stress", "all")
+    cases = (
+        [load_case(p) for p in sorted(glob.glob(os.path.join(args.gold_dir, "*.yaml")))]
+        if run_gold
+        else []
+    )
+    records = run_gold_suite(cases, backend, args.tokenizer) if run_gold else []
 
     adtc_res = None
-    if args.adtc and os.path.exists(args.adtc):
+    if run_enterprise and args.adtc and os.path.exists(args.adtc):
         adtc_res = score_adtc(load_adtc(args.adtc), backend, label=args.adtc_label)
     bare_records = None
-    if args.bare and os.path.exists(args.bare):
+    if run_bare and args.bare and os.path.exists(args.bare):
         bare_records = run_bare_suite(load_bare_prompts(args.bare), backend)
 
     perf = json.load(open(args.perf, encoding="utf-8")) if args.perf else None
-    provenance = {"git_commit": _git_commit(), "model_path": args.model_path,
-                  "model_sha256": _sha256(args.model_path), "backend": args.backend, "seeds": {}}
+    gold_hashes = {
+        os.path.basename(path): sha256_file(path)
+        for path in sorted(glob.glob(os.path.join(args.gold_dir, "*.yaml")))
+    }
+    provenance = {
+        "git_commit": _git_commit(),
+        "model_path": args.model_path,
+        "model_sha256": _sha256(args.model_path),
+        "backend": args.backend,
+        "seeds": {"stress": 20260726},
+        "environment": environment_fingerprint(),
+        "command_arguments": vars(args),
+        "configuration_sha256": sha256_file(args.config),
+        "dataset_hashes": {
+            "gold": gold_hashes,
+            "enterprise": _sha256(args.adtc),
+            "bare": _sha256(args.bare),
+        },
+    }
     sc = build_scorecard(records, adtc_res=adtc_res, bare_records=bare_records,
                          provenance=provenance, perf=perf)
-    write_run(os.path.join(args.out, args.label), records, sc)
+    if run_stress:
+        from bursa_eval.stress import run_distinct
+        sc["stress"] = run_distinct(
+            backend, args.tokenizer, n=config["stress_inputs"]
+        )
+    run_dir = (
+        immutable_run_dir(args.out, args.label)
+        if explicit_run
+        else os.path.join(args.out, args.label)
+    )
+    write_run(run_dir, records, sc)
 
     g = sc["bursa_gold"]
     print(f"incorrect_auto_posts   = {g['incorrect_auto_posts']}")
@@ -148,7 +216,7 @@ def main(argv=None) -> int:
     for gate in sc["gates_not_exercised"]:
         print(f"WARN: gate not exercised — {gate} (no qualifying cases; vacuous, NOT a pass)",
               file=sys.stderr)
-    if sc["gates_failed"]:
+    if sc["gates_failed"] or (sc.get("stress") and not sc["stress"]["passes"]):
         print(f"GATES FAILED: {sc['gates_failed']}", file=sys.stderr)
         return 1
     return 0

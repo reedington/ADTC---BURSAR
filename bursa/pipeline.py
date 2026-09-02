@@ -90,6 +90,37 @@ def _store_review(
     confidence=None,
     allocations=None,
 ):
+    return _store_model_proposal(
+        conn,
+        txn,
+        source,
+        RecommendedAction.REVIEW,
+        reason,
+        explanation,
+        candidate_items=candidate_items,
+        raw_output=raw_output,
+        model_data=model_data,
+        feature_values=feature_values,
+        confidence=confidence,
+        allocations=allocations,
+    )
+
+
+def _store_model_proposal(
+    conn,
+    txn,
+    source,
+    action,
+    reason,
+    explanation,
+    *,
+    candidate_items=None,
+    raw_output=None,
+    model_data=None,
+    feature_values=None,
+    confidence=None,
+    allocations=None,
+):
     txn_id = txn["transaction_id"]
     pid = f"PROP-{uuid4().hex}"
     full = f"{reason}: {explanation}" if reason else explanation
@@ -99,7 +130,7 @@ def _store_review(
         pid,
         txn_id,
         source,
-        RecommendedAction.REVIEW,
+        action,
         confidence,
         full,
         _now(),
@@ -111,8 +142,9 @@ def _store_review(
         ambiguities=(model_data or {}).get("ambiguities", []),
         allocations=allocations or (model_data or {}).get("candidate_allocations", []),
     )
-    repo.set_routing_state(conn, txn_id, "review")
-    return "review"
+    state = "review" if action == RecommendedAction.REVIEW else "unmatched"
+    repo.set_routing_state(conn, txn_id, state)
+    return state
 
 
 @dataclass
@@ -181,8 +213,14 @@ def run_model_path(conn, txn, backend, tokenizer_path: str | None = None) -> Mod
     )
 
 
-def reconcile(conn, txn_id, config: Config | None = None, backend=None,
-              tokenizer_path: str | None = None) -> str:
+def reconcile(
+    conn,
+    txn_id,
+    config: Config | None = None,
+    backend=None,
+    tokenizer_path: str | None = None,
+    confidence_policy: ModelConfidencePolicy | None = None,
+) -> str:
     config = config or Config()
     txn = repo.get_transaction(conn, txn_id)
     if txn is None:
@@ -321,8 +359,122 @@ def reconcile(conn, txn_id, config: Config | None = None, backend=None,
         )
 
     feats = features.extract(txn, r.surviving, r.data, r.dry_ok, r.chosen_id, budget_shed=r.budget_shed)
-    policy = ModelConfidencePolicy()
-    policy.route(feats)   # v1 -> review
+    policy = confidence_policy or ModelConfidencePolicy()
+    confidence = policy.score(feats)
+    action = policy.route(feats)
+    if action == RecommendedAction.UNMATCHED:
+        return _store_model_proposal(
+            conn,
+            txn,
+            "llm",
+            RecommendedAction.UNMATCHED,
+            ReasonCode.MODEL_RANKED,
+            r.data.get("explanation", ""),
+            candidate_items=r.surviving,
+            raw_output=r.raw_output,
+            model_data=r.data,
+            feature_values=feats,
+            confidence=confidence,
+        )
+
+    allocations = r.data.get("candidate_allocations", [])
+    allocated_minor = sum(allocation["amount_minor"] for allocation in allocations)
+    safe_for_auto = (
+        action == RecommendedAction.AUTO
+        and config.auto_post_enabled
+        and config.model_auto_post_enabled
+        and r.dry_ok
+        and not r.budget_shed
+        and bool(allocations)
+        and allocated_minor == txn["amount_minor"]
+    )
+    if safe_for_auto:
+        proposal_id = f"PROP-{uuid4().hex}"
+        proposed = []
+        for allocation in allocations:
+            events, remainder = distribute.distribute(
+                conn,
+                txn_id,
+                allocation["student_id"],
+                allocation["amount_minor"],
+                "engine",
+                create_credit=False,
+            )
+            if remainder:
+                safe_for_auto = False
+                break
+            proposed.extend(
+                event.model_copy(
+                    update={
+                        "actor": "engine",
+                        "source": "llm_calibrated",
+                        "evidence_ref": proposal_id,
+                        "decision_path": "auto",
+                    }
+                )
+                for event in events
+            )
+        if safe_for_auto:
+            try:
+                with dbmod.transaction(conn):
+                    repo.supersede_pending_proposals(conn, txn_id)
+                    repo.insert_proposal(
+                        conn,
+                        proposal_id,
+                        txn_id,
+                        "llm",
+                        RecommendedAction.AUTO,
+                        confidence,
+                        r.data.get("explanation", ""),
+                        _now(),
+                        features=feats,
+                        candidates=_candidate_snapshot(r.surviving),
+                        evidence=_evidence_snapshot(txn),
+                        raw_output=r.raw_output,
+                        ambiguities=r.data.get("ambiguities", []),
+                        allocations=allocations,
+                    )
+                    ledger.post_within_transaction(
+                        conn,
+                        txn_id,
+                        proposed,
+                        "engine",
+                        "llm_calibrated",
+                        proposal_id,
+                        "auto",
+                    )
+                    repo.record_proposal_decision(
+                        conn,
+                        proposal_id,
+                        "approve",
+                        "engine",
+                        _now(),
+                        allocations,
+                        0,
+                    )
+                    repo.set_routing_state(conn, txn_id, "auto")
+                return "auto"
+            except InvariantViolation:
+                # The failed automatic attempt rolled back in full.  Persist the
+                # original evidence as a review proposal, never a partial post.
+                return _store_review(
+                    conn,
+                    txn,
+                    "llm",
+                    "invariant",
+                    "Calibrated automatic posting was blocked by the constraint engine.",
+                    candidate_items=r.surviving,
+                    raw_output=r.raw_output,
+                    model_data=r.data,
+                    feature_values=feats,
+                    confidence=confidence,
+                )
+
+    explanation = r.data.get("explanation", "")
+    if action == RecommendedAction.AUTO:
+        explanation = (
+            f"{explanation} Automatic posting was blocked by the financial safety gate."
+        ).strip()
     return _store_review(
         conn,
         txn,
@@ -333,5 +485,5 @@ def reconcile(conn, txn_id, config: Config | None = None, backend=None,
         raw_output=r.raw_output,
         model_data=r.data,
         feature_values=feats,
-        confidence=policy.score(feats),
+        confidence=confidence,
     )

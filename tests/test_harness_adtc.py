@@ -28,3 +28,12 @@ def test_regression_delta_is_relative_only():
     pre = {"accuracy": 0.80}
     post = {"accuracy": 0.79}
     assert abs(regression_delta(pre, post) - (-0.01)) < 1e-9
+
+
+def test_multiple_choice_requires_extracted_answer_label():
+    backend = FakeBackend(chat_response="The answer is C.")
+    result = score_adtc([
+        {"id": "m1", "prompt": "Question", "expected": "C",
+         "scoring": "multiple_choice"}
+    ], backend, "internal_mmlu_enterprise_proxy")
+    assert result["accuracy"] == 1.0

@@ -396,6 +396,7 @@ def create_app(
                 app_config,
                 backend=app_runtime.backend,
                 tokenizer_path=app_runtime.tokenizer_path,
+                confidence_policy=app_runtime.confidence_policy,
             )
         finally:
             conn.close()

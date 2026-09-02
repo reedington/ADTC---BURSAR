@@ -1,0 +1,75 @@
+id: gold-draft-0125-sibling_split
+scenario_family: sibling_split
+language: pcm
+difficulty: hard
+guardian_family: draft-sibling_split-09
+template_family: draft-sibling_split-09
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D130901
+    name: C. N. Okafor
+    phone_suffix: '1049'
+  - id: G-D130902
+    name: A. Eze
+  students:
+  - id: STU-D130901
+    name: Chidi Okafor
+    aliases:
+    - Chi
+    guardians:
+    - G-D130901
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 40000
+  - id: STU-D130902
+    name: Somtochukwu Okafor
+    aliases:
+    - Somto
+    guardians:
+    - G-D130901
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 35000
+  - id: STU-D130903
+    name: Chiamaka Eze
+    aliases:
+    - Chi-Chi
+    guardians:
+    - G-D130902
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 75000
+  history: []
+transaction:
+  reference: NIP-D-D1309
+  date: '2026-02-14'
+  amount_naira: 75000
+  payer_name: C. N. OKAFOR
+  narration: Abeg, na school fees matter. CHI AND SOMTO SCH FEE REVIEW_DRAFT_09
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D130901
+    fee_id: FEE-TUITION
+    amount_naira: 40000
+  - student_id: STU-D130902
+    fee_id: FEE-TUITION
+    amount_naira: 35000
+  credits: []
+  pool_must_include:
+  - STU-D130901
+  - STU-D130902
+  - STU-D130903
+  rationale: "Two sibling aliases (Chi, Somto) share the paying guardian C. N. Okafor;\
+    \ combined balance (40k + 35k) equals the 75k payment. Chiamaka Eze is a decoy:\
+    \ her balance is exactly 75k and \"Chi-Chi\" overlaps \"Chi\", but her guardian\
+    \ is A. Eze (not the payer) and the narration names two children. The pool must\
+    \ surface the decoy (pool_must_include) so the trap is exercised.\n [REVIEW_DRAFT:\
+    \ reviewer must rewrite and verify this variant.]"

@@ -6,18 +6,21 @@ available when a GGUF or llama-server is absent. Tests may inject a backend dire
 from __future__ import annotations
 
 import os
+import hashlib
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
 from bursa.inference.backend import LlamaServerBackend
 from bursa.inference.server import LlamaServer
+from bursa.calibrator import CalibrationError, ModelConfidencePolicy
 
 
 @dataclass
 class AppRuntime:
     model_path: str | None = None
     tokenizer_path: str | None = None
+    calibration_path: str | None = None
     actor: str = "bursar"
     backend: Any | None = None
     server: LlamaServer | None = None
@@ -25,16 +28,20 @@ class AppRuntime:
     threads: int = 4
     ctx: int = 2048
     last_error: str | None = field(default=None, init=False)
+    calibration_error: str | None = field(default=None, init=False)
+    confidence_policy: ModelConfidencePolicy | None = None
 
     @classmethod
     def from_environment(cls) -> "AppRuntime":
         return cls(
             model_path=os.environ.get("BURSA_MODEL_PATH") or None,
             tokenizer_path=os.environ.get("BURSA_TOKENIZER_PATH") or None,
+            calibration_path=os.environ.get("BURSA_CALIBRATION_PATH") or None,
             actor=os.environ.get("BURSA_ACTOR", "bursar").strip() or "bursar",
         )
 
     def start(self) -> None:
+        self._load_calibration()
         if self.backend is not None:
             return
         if not self.model_path:
@@ -58,6 +65,30 @@ class AppRuntime:
             self.backend = None
             self.last_error = str(exc)
 
+    def _load_calibration(self) -> None:
+        if self.confidence_policy is not None:
+            return
+        if not self.calibration_path:
+            self.confidence_policy = ModelConfidencePolicy()
+            self.calibration_error = None
+            return
+        if not self.model_path or not Path(self.model_path).is_file():
+            self.confidence_policy = ModelConfidencePolicy()
+            self.calibration_error = "calibration requires a readable model file"
+            return
+        digest = hashlib.sha256()
+        with Path(self.model_path).open("rb") as handle:
+            for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+                digest.update(chunk)
+        try:
+            self.confidence_policy = ModelConfidencePolicy.from_file(
+                self.calibration_path, expected_model_sha256=digest.hexdigest()
+            )
+            self.calibration_error = None
+        except CalibrationError as exc:
+            self.confidence_policy = ModelConfidencePolicy()
+            self.calibration_error = str(exc)
+
     def stop(self) -> None:
         if self.server is not None:
             self.server.stop()
@@ -73,11 +104,17 @@ class AppRuntime:
         return self.server.health()
 
     def health(self) -> dict:
+        policy = self.confidence_policy or ModelConfidencePolicy()
         return {
             "available": self.model_available(),
             "configured": bool(self.model_path or self.backend),
             "model_path": self.model_path,
             "last_error": self.last_error,
+            "calibrated": policy.calibrated,
+            "model_auto_post_enabled": (
+                policy.automatic_posting_enabled
+            ),
+            "calibration_error": self.calibration_error,
             "threads": self.threads,
             "context": self.ctx,
         }

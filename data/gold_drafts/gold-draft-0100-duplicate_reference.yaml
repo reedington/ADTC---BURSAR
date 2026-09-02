@@ -1,0 +1,50 @@
+id: gold-draft-0100-duplicate_reference
+scenario_family: duplicate_reference
+language: en
+difficulty: easy
+guardian_family: draft-duplicate_reference-08
+template_family: draft-duplicate_reference-08
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D020801
+    name: Kabiru Lawal
+  students:
+  - id: STU-D020801
+    name: Maryam Lawal
+    aliases: []
+    guardians:
+    - G-D020801
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 50000
+  history:
+  - transaction:
+      reference: NIP-D-D0208
+      date: '2026-02-10'
+      amount_naira: 50000
+      payer_name: KABIRU LAWAL
+      narration: Maryam school fees
+    allocations:
+    - student_id: STU-D020801
+      fee_id: FEE-TUITION
+      amount_naira: 50000
+transaction:
+  reference: NIP-D-D0208
+  date: '2026-02-18'
+  amount_naira: 50000
+  payer_name: KABIRU LAWAL
+  narration: School payment evidence. Maryam school fees duplicate row REVIEW_DRAFT_08
+expected:
+  outcome: duplicate_blocked
+  allocations: []
+  credits: []
+  rationale: "NIP10100001 has already been imported and posted. The unique reference/dedup\
+    \ boundary must block this row before any second ledger allocation can be created.\n\
+    \ [REVIEW_DRAFT: reviewer must rewrite and verify this variant.]"

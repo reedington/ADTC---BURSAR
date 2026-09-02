@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "suites": [
+    "gold",
+    "enterprise",
+    "bare",
+    "stress"
+  ],
+  "stress_inputs": 1000,
+  "minimum_json_validity": 0.995,
+  "maximum_unsupported_ids": 0,
+  "maximum_thinking_leaks": 0,
+  "maximum_incorrect_auto_posts": 0
+}

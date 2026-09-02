@@ -70,3 +70,17 @@ def test_main_smoke_writes_artifacts(tmp_path):
     # money-safety gates are genuinely exercised rather than vacuously green.
     assert "incorrect_auto_posts" not in sc["gates_not_exercised"]
     assert "duplicate_blocked_rate" not in sc["gates_not_exercised"]
+
+
+def test_stable_run_suite_interface(tmp_path):
+    code = main([
+        "run", "--suite", "bare", "--backend", "fake",
+        "--out", str(tmp_path), "--label", "bare-only", "--allow-dirty",
+    ])
+    run_dir = next(tmp_path.glob("*-bare-only"))
+    scorecard = json.loads(
+        (run_dir / "scorecard.json").read_text()
+    )
+    assert scorecard["bare_model"] is not None
+    assert scorecard["adtc"] is None
+    assert code == 0

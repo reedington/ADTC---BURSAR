@@ -1,0 +1,43 @@
+id: gold-draft-0008-name_match
+scenario_family: name_match
+language: yo
+difficulty: easy
+guardian_family: draft-name_match-01
+template_family: draft-name_match-01
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D080101
+    name: Mr Adeyemi
+    phone_suffix: '3321'
+  students:
+  - id: STU-D080101
+    name: Tunde Adeyemi
+    aliases: []
+    guardians:
+    - G-D080101
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 40000
+  history: []
+transaction:
+  reference: NIP-D-D0801
+  date: '2026-02-14'
+  amount_naira: 40000
+  payer_name: A. ADEYEMI
+  narration: Jọ̀wọ́, owó ilé ẹ̀kọ́ ni èyí. SCH FEES STU-1042 TUITION REVIEW_DRAFT_01
+expected:
+  outcome: auto
+  allocations:
+  - student_id: STU-D080101
+    fee_id: FEE-TUITION
+    amount_naira: 40000
+  credits: []
+  rationale: 'Exact student ID STU-1042 in the narration; amount equals the exact
+    tuition balance. [REVIEW_DRAFT: reviewer must rewrite and verify this variant.]'

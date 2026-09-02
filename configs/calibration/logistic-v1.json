@@ -1,0 +1,11 @@
+{
+  "schema_version": 1,
+  "feature_version": 1,
+  "seed": 3407,
+  "fit_cases": 400,
+  "threshold_cases": 200,
+  "minimum_positive": 25,
+  "minimum_negative": 25,
+  "auto_threshold_start": 0.9,
+  "review_threshold": 0.65
+}

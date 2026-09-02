@@ -1,0 +1,43 @@
+schema_version = 1
+seed = 3407
+max_seq_length = 2048
+minimum_free_gib = 80
+minimum_gpu_memory_gib = 22
+
+[lora]
+r = 16
+alpha = 32
+dropout = 0.0
+bias = "none"
+target_modules = [
+  "q_proj",
+  "k_proj",
+  "v_proj",
+  "o_proj",
+  "gate_proj",
+  "up_proj",
+  "down_proj",
+]
+gradient_checkpointing = "unsloth"
+
+[trainer]
+micro_batch_size = 4
+gradient_accumulation_steps = 8
+epochs = 2
+learning_rate = 0.0002
+lr_scheduler_type = "cosine"
+warmup_ratio = 0.03
+weight_decay = 0.01
+optim = "adamw_8bit"
+save_steps = 100
+eval_steps = 100
+logging_steps = 10
+packing = false
+
+[models."qwen3-0.6b"]
+source = "unsloth/Qwen3-0.6B-unsloth-bnb-4bit"
+revision = "e86f5289a2ca40ab7114071959dc2079cf97cb3c"
+
+[models."qwen3-1.7b"]
+source = "unsloth/Qwen3-1.7B-unsloth-bnb-4bit"
+revision = "a972f4304f86a0a705d35b378d7a7675d58063a7"

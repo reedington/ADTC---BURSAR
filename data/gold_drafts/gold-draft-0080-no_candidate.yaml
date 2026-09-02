@@ -1,0 +1,37 @@
+id: gold-draft-0080-no_candidate
+scenario_family: no_candidate
+language: en
+difficulty: medium
+guardian_family: draft-no_candidate-06
+template_family: draft-no_candidate-06
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians: []
+  students:
+  - id: STU-D100601
+    name: Grace Udo
+    aliases: []
+    guardians: []
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 40000
+  history: []
+transaction:
+  reference: NIP-D-D1006
+  date: '2026-02-19'
+  amount_naira: 17500
+  payer_name: UNKNOWN MERCHANT
+  narration: School payment evidence. misc transfer REVIEW_DRAFT_06
+expected:
+  outcome: unmatched
+  allocations: []
+  credits: []
+  rationale: "Nothing links this payer, narration, reference, or amount to Grace Udo.\
+    \ Keep the entire payment visible as unmatched rather than manufacturing a candidate\
+    \ or allocation.\n [REVIEW_DRAFT: reviewer must rewrite and verify this variant.]"

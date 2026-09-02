@@ -1,0 +1,46 @@
+id: gold-draft-0096-overpayment
+scenario_family: overpayment
+language: pcm
+difficulty: medium
+guardian_family: draft-overpayment-07
+template_family: draft-overpayment-07
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D120701
+    name: Chika Obasi
+  students:
+  - id: STU-D120701
+    name: Ifeanyi Obasi
+    aliases: []
+    guardians:
+    - G-D120701
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 50000
+  history: []
+transaction:
+  reference: NIP-D-D1207
+  date: '2026-02-17'
+  amount_naira: 55000
+  payer_name: CHIKA OBASI
+  narration: Abeg, na school fees matter. Ifeanyi full school fees REVIEW_DRAFT_07
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D120701
+    fee_id: FEE-TUITION
+    amount_naira: 50000
+  credits:
+  - holder: STU-D120701
+    amount_naira: 5000
+  rationale: "Clear Ifeanyi's NGN 50,000 tuition balance and record the NGN 5,000\
+    \ surplus as explicit student credit. The surplus must never be discarded or force\
+    \ the charge negative.\n [REVIEW_DRAFT: reviewer must rewrite and verify this\
+    \ variant.]"

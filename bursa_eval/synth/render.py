@@ -77,6 +77,8 @@ def to_chat_format(case):
         al = f" (aka {', '.join(s.aliases)})" if s.aliases else ""
         lines.append(f"- {s.id} {s.name}{al}: {bals}")
     lines.append("Who should this be allocated to, and how? If unclear, say it needs review.")
-    prompt = "<|im_start|>user\n" + "\n".join(lines) + "<|im_end|>\n<|im_start|>assistant"
+    # Keep this as a plain user turn. The training runner applies the selected
+    # base model's embedded chat template, preserving bare-chat behavior.
+    prompt = "\n".join(lines)
     answer = case.expected.rationale + " Recommended action: " + case.expected.outcome + "."
     return {"prompt": prompt, "completion": answer}

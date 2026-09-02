@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "runtime": {
+    "context": 2048,
+    "kv_cache": "q8_0",
+    "temperature": 0,
+    "threads": 4
+  },
+  "models": [
+    {
+      "id": "qwen3-0.6b-q4_k_m",
+      "family": "qwen3",
+      "path": "model/qwen3-0.6b-q4_k_m.gguf",
+      "sha256": "ac2d97712095a558e31573f62f466a3f9d93990898b0ec79d7c974c1780d524a",
+      "size_bytes": 396705472,
+      "source": "unsloth/Qwen3-0.6B-GGUF",
+      "source_revision": "50968a4468ef4233ed78cd7c3de230dd1d61a56b",
+      "license": "Apache-2.0",
+      "production_candidate": true,
+      "redistribute": false
+    },
+    {
+      "id": "qwen3-1.7b-q4_k_m",
+      "family": "qwen3",
+      "path": "model/qwen3-1.7b-q4_k_m.gguf",
+      "sha256": "b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897",
+      "size_bytes": 1107409472,
+      "source": "unsloth/Qwen3-1.7B-GGUF",
+      "source_revision": "d7f544eead698dbd1f15126ef60b45a1e1933222",
+      "license": "Apache-2.0",
+      "production_candidate": true,
+      "redistribute": false
+    },
+    {
+      "id": "gemma-3-1b-it-q4_k_m",
+      "family": "gemma3",
+      "path": "model/baselines/gemma-3-1b-it-Q4_K_M.gguf",
+      "sha256": "8270790f3ab69fdfe860b7b64008d9a19986d8df7e407bb018184caa08798ebd",
+      "size_bytes": 806058272,
+      "source": "unsloth/gemma-3-1b-it-GGUF",
+      "source_revision": "f7694be509de1c4ab9afc29f8353a315326c64f3",
+      "license": "Gemma Terms",
+      "production_candidate": false,
+      "redistribute": false
+    },
+    {
+      "id": "llama-3.2-3b-instruct-q4_k_m",
+      "family": "llama3",
+      "path": "model/baselines/Llama-3.2-3B-Instruct-Q4_K_M.gguf",
+      "sha256": "6c99cc00ae910f6a532a80022cb4bc1939094527a089c29294b841c0bd87f74d",
+      "size_bytes": 2019377600,
+      "source": "unsloth/Llama-3.2-3B-Instruct-GGUF",
+      "source_revision": "42c54c6c76da1a23eebf2248a70f328e462edb6e",
+      "license": "Llama 3.2 Community License",
+      "production_candidate": false,
+      "redistribute": false
+    }
+  ]
+}

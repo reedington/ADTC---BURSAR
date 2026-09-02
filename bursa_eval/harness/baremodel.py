@@ -28,7 +28,8 @@ def load_bare_prompts(path) -> list[dict]:
 
 
 def _has_leak(text: str) -> bool:
-    return any(m in text for m in _LEAK_MARKERS)
+    lowered = text.lower()
+    return any(marker in lowered for marker in _LEAK_MARKERS)
 
 
 def run_bare_suite(prompts, backend) -> list[BareRecord]:

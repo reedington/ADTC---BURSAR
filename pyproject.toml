@@ -21,6 +21,11 @@ dev = ["pytest>=8.0", "hypothesis>=6.100", "httpx>=0.27"]
 [project.scripts]
 bursa-web = "bursa.web:main"
 bursa-demo-case = "bursa_eval.demo_case:main"
+bursa-calibrate = "bursa_eval.calibration:main"
+bursa-data = "bursa_eval.dataset:main"
+bursa-baseline = "bursa_eval.baseline:main"
+bursa-scorecard = "bursa_eval.harness.scorecard:main"
+bursa-train = "bursa_eval.training:main"
 
 [tool.setuptools.packages.find]
 include = ["bursa", "bursa.*", "bursa_eval", "bursa_eval.*"]

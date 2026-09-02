@@ -20,9 +20,15 @@ of source code until a registered team member supplies or confirms it.
 - [x] Official ADTC Profiler pinned; see `toolchain.lock.json`.
 - [x] `llama-server` and `llama-bench` installed; build pinned in `toolchain.lock.json`.
 - [x] Qwen3 1.7B, 0.6B, and tokenizer upstream revisions and SHA-256 values pinned.
+- [x] Gemma 3 1B and Llama 3.2 3B evaluation artifacts pinned by revision, size, checksum,
+      and license; weights are not redistributed.
+- [x] Internal MMLU enterprise proxy frozen at 200 rows and explicitly labelled non-official.
+- [ ] At least 12 GiB is free on the i5 laptop (current implementation preflight blocks below it).
+- [ ] At least 80 GiB is free on the rented 24 GB NVIDIA training host.
 - [ ] Participant-mode profiler run completed on the physical i5-class laptop at four threads.
 - [ ] Ten-run i5 profiling series completed with no crash, OOM, or thermal throttle.
-- [ ] Corporate/Enterprise official validation set obtained.
+- [ ] Corporate/Enterprise official validation set obtained. No public set is currently
+      available; hidden organizer prompts must not be represented by the internal proxy.
 
 Development verification on Apple ARM64 is useful for functionality only and must never be copied
 into the target-hardware benchmark tables.

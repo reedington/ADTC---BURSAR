@@ -1,0 +1,54 @@
+id: gold-draft-0021-known_payer
+scenario_family: known_payer
+language: pcm
+difficulty: medium
+guardian_family: draft-known_payer-02
+template_family: draft-known_payer-02
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D070201
+    name: Kwame Mensah
+  students:
+  - id: STU-D070201
+    name: Ama Mensah
+    aliases: []
+    guardians:
+    - G-D070201
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 80000
+  history:
+  - transaction:
+      reference: NIP-H-D0702-01
+      date: '2026-01-20'
+      amount_naira: 30000
+      payer_name: KWAME MENSAH
+      narration: Ama first payment
+    allocations:
+    - student_id: STU-D070201
+      fee_id: FEE-TUITION
+      amount_naira: 30000
+transaction:
+  reference: NIP-D-D0702
+  date: '2026-02-19'
+  amount_naira: 50000
+  payer_name: KWAME MENSAH
+  narration: Abeg, na school fees matter. balance REVIEW_DRAFT_02
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D070201
+    fee_id: FEE-TUITION
+    amount_naira: 50000
+  credits: []
+  rationale: "The narration is weak, but the same normalized payer previously paid\
+    \ Ama and her remaining tuition balance is exactly NGN 50,000. Historical mapping\
+    \ supports a review proposal.\n [REVIEW_DRAFT: reviewer must rewrite and verify\
+    \ this variant.]"

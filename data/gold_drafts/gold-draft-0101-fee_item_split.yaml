@@ -1,0 +1,48 @@
+id: gold-draft-0101-fee_item_split
+scenario_family: fee_item_split
+language: en
+difficulty: hard
+guardian_family: draft-fee_item_split-08
+template_family: draft-fee_item_split-08
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D030801
+    name: Ini Ekong
+  students:
+  - id: STU-D030801
+    name: Mfon Ekong
+    aliases: []
+    guardians:
+    - G-D030801
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 40000
+    - fee_id: FEE-TRANSPORT
+      amount_naira: 15000
+  history: []
+transaction:
+  reference: NIP-D-D0308
+  date: '2026-02-18'
+  amount_naira: 55000
+  payer_name: INI EKONG
+  narration: School payment evidence. Mfon tuition 40k and transport 15k REVIEW_DRAFT_08
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D030801
+    fee_id: FEE-TUITION
+    amount_naira: 40000
+  - student_id: STU-D030801
+    fee_id: FEE-TRANSPORT
+    amount_naira: 15000
+  credits: []
+  rationale: "The narration supplies an explicit fee-item split whose NGN 40,000 and\
+    \ NGN 15,000 components sum exactly to the transfer and to Mfon's two outstanding\
+    \ charges.\n [REVIEW_DRAFT: reviewer must rewrite and verify this variant.]"

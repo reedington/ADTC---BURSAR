@@ -1,0 +1,44 @@
+id: gold-draft-0006-instalment
+scenario_family: instalment
+language: pcm
+difficulty: medium
+guardian_family: draft-instalment-01
+template_family: draft-instalment-01
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D060101
+    name: Bisi Ogundele
+  students:
+  - id: STU-D060101
+    name: Femi Ogundele
+    aliases: []
+    guardians:
+    - G-D060101
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 60000
+  history: []
+transaction:
+  reference: NIP-D-D0601
+  date: '2026-02-16'
+  amount_naira: 20000
+  payer_name: BISI OGUNDELE
+  narration: Abeg, na school fees matter. Femi second instalment school fee REVIEW_DRAFT_01
+expected:
+  outcome: review
+  allocations: []
+  credits: []
+  pool_must_include:
+  - STU-D060101
+  rationale: "The narration names Femi and identifies an instalment. Allocate only\
+    \ the received NGN 20,000 to tuition and retain the remaining balance; do not\
+    \ invent a full-payment allocation.\n [REVIEW_DRAFT: reviewer must rewrite and\
+    \ verify this variant.] Drafted as a true abstention; reviewer must add and verify\
+    \ conflicting evidence."

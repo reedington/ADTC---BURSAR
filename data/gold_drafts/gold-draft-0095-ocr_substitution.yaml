@@ -1,0 +1,46 @@
+id: gold-draft-0095-ocr_substitution
+scenario_family: ocr_substitution
+language: en
+difficulty: hard
+guardian_family: draft-ocr_substitution-07
+template_family: draft-ocr_substitution-07
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D110701
+    name: Tayo Adekunle
+    phone_suffix: '1313'
+  students:
+  - id: STU-D110701
+    name: Bola Adekunle
+    aliases:
+    - Bola
+    guardians:
+    - G-D110701
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 42500
+  history: []
+transaction:
+  reference: NIP-D-D1107
+  date: '2026-02-20'
+  amount_naira: 42500
+  payer_name: TAYO ADEKUNLE
+  narration: School payment evidence. B0LA A0EKUNLE SCH0OL FEE REVIEW_DRAFT_07
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D110701
+    fee_id: FEE-TUITION
+    amount_naira: 42500
+  credits: []
+  rationale: "OCR has substituted zero for O and distorted the surname, but the guardian\
+    \ and exact balance support Bola as the leading candidate. Preserve the raw evidence\
+    \ and route the correction through review.\n [REVIEW_DRAFT: reviewer must rewrite\
+    \ and verify this variant.]"

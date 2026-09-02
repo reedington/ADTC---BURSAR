@@ -2,6 +2,7 @@
 The official judge-distributed set drops in unchanged as data/adtc/official/*.jsonl; a
 permissively-licensed proxy set is the interim C3 forgetting-detector (RELATIVE delta only)."""
 import json
+import re
 
 
 def load_adtc(path) -> list[dict]:
@@ -20,11 +21,18 @@ def _norm(s) -> str:
 
 
 def score_adtc(cases, backend, label: str) -> dict:
-    """Run each prompt through the model's embedded chat template; substring/exact match."""
+    """Run prompts through the embedded template with explicit scoring contracts."""
     per_id, correct = {}, 0
     for c in cases:
         out = backend.chat(c["prompt"])
-        hit = _norm(c["expected"]) in _norm(out)
+        if c.get("scoring") == "multiple_choice":
+            match = re.search(
+                r"(?:answer\s*(?:is|:)?\s*)?\b([ABCD])\b",
+                str(out).upper(),
+            )
+            hit = bool(match and match.group(1) == str(c["expected"]).upper())
+        else:
+            hit = _norm(c["expected"]) in _norm(out)
         per_id[c["id"]] = hit
         correct += int(hit)
     return {"label": label, "accuracy": (correct / len(cases)) if cases else None, "per_id": per_id}

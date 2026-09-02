@@ -38,32 +38,77 @@ class LlamaServerBackend:
     def __init__(self, base_url: str = "http://127.0.0.1:8080", timeout: float = 30.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
+        self.last_timings = None
 
-    def generate(self, raw_prompt: str, grammar: str, n_predict: int) -> str:
-        body = json.dumps({
-            "prompt": raw_prompt, "grammar": grammar, "n_predict": n_predict,
-            "temperature": 0, "cache_prompt": True,
-        }).encode()
-        req = urllib.request.Request(self.base_url + "/completion", data=body,
-                                     headers={"Content-Type": "application/json"})
+    def _request(self, path: str, body: dict) -> dict:
+        req = urllib.request.Request(
+            self.base_url + path,
+            data=json.dumps(body).encode(),
+            headers={"Content-Type": "application/json"},
+        )
         try:
             with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                return json.loads(resp.read())["content"]
+                return json.loads(resp.read())
         except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
             raise BackendTransportError(str(exc)) from exc
+
+    def generate(self, raw_prompt: str, grammar: str, n_predict: int) -> str:
+        return self.completion(
+            raw_prompt, max_tokens=n_predict, grammar=grammar
+        )
+
+    def completion(
+        self,
+        raw_prompt: str,
+        *,
+        max_tokens: int = 512,
+        grammar: str | None = None,
+    ) -> str:
+        body = {
+            "prompt": raw_prompt,
+            "n_predict": max_tokens,
+            "temperature": 0,
+            "cache_prompt": True,
+        }
+        if grammar:
+            body["grammar"] = grammar
+        payload = self._request("/completion", body)
+        self.last_timings = payload.get("timings")
+        return payload["content"]
 
     def chat(self, prompt: str) -> str:
         """POST to /v1/chat/completions so the GGUF's EMBEDDED chat template is applied
         (no self-applied Qwen template, no grammar). i5-only; exercised via the runbook."""
-        body = json.dumps({
-            "messages": [{"role": "user", "content": prompt}],
+        return self.chat_completion([{"role": "user", "content": prompt}], max_tokens=512)
+
+    def chat_completion(
+        self,
+        messages: list[dict],
+        *,
+        grammar: str | None = None,
+        max_tokens: int = 512,
+    ) -> str:
+        body = {
+            "messages": messages,
             "temperature": 0,
-            "max_tokens": 512,
-        }).encode()
-        req = urllib.request.Request(self.base_url + "/v1/chat/completions", data=body,
-                                     headers={"Content-Type": "application/json"})
-        try:
-            with urllib.request.urlopen(req, timeout=self.timeout) as resp:
-                return json.loads(resp.read())["choices"][0]["message"]["content"]
-        except (urllib.error.URLError, TimeoutError, ConnectionError, OSError) as exc:
-            raise BackendTransportError(str(exc)) from exc
+            "max_tokens": max_tokens,
+        }
+        if grammar:
+            body["grammar"] = grammar
+        payload = self._request("/v1/chat/completions", body)
+        self.last_timings = payload.get("timings")
+        return payload["choices"][0]["message"]["content"]
+
+    def apply_template(self, messages: list[dict]) -> str:
+        payload = self._request("/apply-template", {"messages": messages})
+        prompt = payload.get("prompt")
+        if not isinstance(prompt, str):
+            raise BackendTransportError("/apply-template returned no prompt")
+        return prompt
+
+    def tokenize(self, content: str) -> list[int]:
+        payload = self._request("/tokenize", {"content": content})
+        tokens = payload.get("tokens")
+        if not isinstance(tokens, list):
+            raise BackendTransportError("/tokenize returned no token list")
+        return tokens

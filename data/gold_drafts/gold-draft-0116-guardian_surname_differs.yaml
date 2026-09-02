@@ -1,0 +1,45 @@
+id: gold-draft-0116-guardian_surname_differs
+scenario_family: guardian_surname_differs
+language: en
+difficulty: medium
+guardian_family: draft-guardian_surname_differs-09
+template_family: draft-guardian_surname_differs-09
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D040901
+    name: Funke Balogun
+    phone_suffix: '5005'
+  students:
+  - id: STU-D040901
+    name: Dara Olamide
+    aliases: []
+    guardians:
+    - G-D040901
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 45000
+  history: []
+transaction:
+  reference: NIP-D-D0409
+  date: '2026-02-16'
+  amount_naira: 45000
+  payer_name: FUNKE BALOGUN
+  narration: School payment evidence. school fees for Dara REVIEW_DRAFT_09
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D040901
+    fee_id: FEE-TUITION
+    amount_naira: 45000
+  credits: []
+  rationale: "The payer surname differs from the student's surname, but Funke Balogun\
+    \ is Dara Olamide's recorded guardian and the payment equals Dara's outstanding\
+    \ tuition. The relationship is strong evidence, but the non-ID match remains a\
+    \ review proposal.\n [REVIEW_DRAFT: reviewer must rewrite and verify this variant.]"

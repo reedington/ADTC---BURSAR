@@ -1,0 +1,45 @@
+id: gold-draft-0121-nickname_initials
+scenario_family: nickname_initials
+language: en
+difficulty: medium
+guardian_family: draft-nickname_initials-09
+template_family: draft-nickname_initials-09
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D090901
+    name: Ngozi Nwosu
+    phone_suffix: '7788'
+  students:
+  - id: STU-D090901
+    name: Adaeze Nwosu
+    aliases:
+    - Ada
+    guardians:
+    - G-D090901
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 30000
+  history: []
+transaction:
+  reference: NIP-D-D0909
+  date: '2026-02-15'
+  amount_naira: 30000
+  payer_name: N. NWOSO
+  narration: School payment evidence. ada nwoso school fee REVIEW_DRAFT_09
+expected:
+  outcome: review
+  allocations:
+  - student_id: STU-D090901
+    fee_id: FEE-TUITION
+    amount_naira: 30000
+  credits: []
+  rationale: 'Nickname ''ada'' + misspelled surname ''nwoso''; plausible single match
+    but non-exact, so review. [REVIEW_DRAFT: reviewer must rewrite and verify this
+    variant.]'

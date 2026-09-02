@@ -1,0 +1,60 @@
+id: gold-draft-0127-ambiguous_candidates
+scenario_family: ambiguous_candidates
+language: pcm
+difficulty: hard
+guardian_family: draft-ambiguous_candidates-10
+template_family: draft-ambiguous_candidates-10
+provenance: draft
+review:
+  status: draft
+setup:
+  term:
+    id: T1
+    session: 2025/2026
+    name: second_term
+  guardians:
+  - id: G-D011001
+    name: Musa Ibrahim
+    phone_suffix: '4471'
+  - id: G-D011002
+    name: Musa Ibrahim
+    phone_suffix: '8802'
+  students:
+  - id: STU-D011001
+    name: Amina Musa
+    aliases: []
+    guardians:
+    - G-D011001
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 35000
+  - id: STU-D011002
+    name: Sadiq Ibrahim
+    aliases: []
+    guardians:
+    - G-D011002
+    charges:
+    - fee_id: FEE-TUITION
+      amount_naira: 50000
+  history: []
+transaction:
+  reference: NIP-D-D0110
+  date: '2026-02-15'
+  amount_naira: 20000
+  payer_name: MUSA IBRAHIM
+  narration: Abeg, na school fees matter. abeg na school fees for my pikin REVIEW_DRAFT_10
+expected:
+  outcome: review
+  allocations: []
+  credits: []
+  pool_must_include:
+  - STU-D011001
+  - STU-D011002
+  rationale: "Payer \"Musa Ibrahim\" matches the guardian name on BOTH children; the\
+    \ Pidgin narration says \"my pikin\" (one child) but not which; there is no reference,\
+    \ no digits for a phone-suffix match, and ₦20,000 matches neither balance (35k\
+    \ / 50k) so even the exact-balance signal is silent. No channel disambiguates\
+    \ — the model must abstain (empty allocations) and the bursar holds it for review\
+    \ / clarification. Empty allocations == abstention; a non-empty pool routes to\
+    \ review (not unmatched, which is the empty-pool path).\n [REVIEW_DRAFT: reviewer\
+    \ must rewrite and verify this variant.]"

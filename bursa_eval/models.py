@@ -93,6 +93,13 @@ class Expected(BaseModel):
     rationale: str = ""
 
 
+class ReviewMetadata(BaseModel):
+    status: Literal["draft", "reviewed"]
+    reviewer: str | None = None
+    reviewed_at: str | None = None
+    content_sha256: str | None = None
+
+
 class GoldCase(BaseModel):
     id: str
     scenario_family: str
@@ -100,7 +107,8 @@ class GoldCase(BaseModel):
     difficulty: Literal["easy", "medium", "hard"] | None = None
     guardian_family: str
     template_family: str
-    provenance: Literal["team_authored", "synthetic"] = "team_authored"
+    provenance: Literal["team_authored", "synthetic", "draft"] = "team_authored"
+    review: ReviewMetadata | None = None
     setup: Setup
     transaction: TransactionSpec
     expected: Expected

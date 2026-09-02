@@ -10,6 +10,7 @@ def build_server_args(model_path, port=8080, threads=4, ctx=2048) -> list[str]:
         "llama-server", "--model", model_path, "--ctx-size", str(ctx),
         "--threads", str(threads), "--temp", "0",
         "--cache-type-k", "q8_0", "--cache-type-v", "q8_0",
+        "--offline",
         "--port", str(port),
     ]
 
@@ -25,6 +26,10 @@ class LlamaServer:
             return
         self._proc = subprocess.Popen(self.args, stdout=subprocess.DEVNULL,
                                       stderr=subprocess.DEVNULL)
+
+    @property
+    def process_id(self) -> int | None:
+        return self._proc.pid if self._proc is not None else None
 
     def health(self) -> bool:
         try:

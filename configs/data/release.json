@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "seed": 3407,
+  "authored_cases": 154,
+  "languages": {
+    "en": 90,
+    "pcm": 40,
+    "yo": 24
+  },
+  "abstentions": 42,
+  "synthetic_cases": 4000,
+  "calibration_cases": 600,
+  "calibration_fit_cases": 400,
+  "calibration_threshold_cases": 200,
+  "general_fraction": 0.3,
+  "allowed_forgetting_retry_fraction": 0.4,
+  "oasst1_revision": "fdf72ae0827c1cda404aff25b6603abec9e3399b"
+}

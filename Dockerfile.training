@@ -1,0 +1,12 @@
+FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-devel
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    HF_HOME=/workspace/.cache/huggingface
+
+WORKDIR /workspace
+COPY requirements-training.lock.txt /tmp/requirements-training.lock.txt
+RUN python -m pip install --no-cache-dir -r /tmp/requirements-training.lock.txt
+
+COPY . /workspace
+ENTRYPOINT ["python", "-m", "bursa_eval.training"]

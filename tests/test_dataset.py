@@ -72,3 +72,70 @@ def test_build_produces_splits_jsonl_and_coverage(tmp_path):
     for name in ("val", "test"):            # synthetic (synth-*) never leaves train
         assert all(not cid.startswith("synth-") for cid in result["assignment"][name])
     assert "train" in result["coverage"]
+
+
+def test_release_build_enforces_mixture_and_calibration_isolation(tmp_path):
+    import json
+    from bursa_eval.dataset import build_release
+
+    messages = []
+    for index in range(40):
+        messages.extend([
+            {
+                "message_id": f"p{index}",
+                "role": "prompter",
+                "lang": "en",
+                "text": f"Explain fictional operational control number {index} clearly.",
+            },
+            {
+                "message_id": f"a{index}",
+                "parent_id": f"p{index}",
+                "role": "assistant",
+                "lang": "en",
+                "rank": 0,
+                "text": f"Control {index} should have an owner, evidence, and review date.",
+            },
+        ])
+    oasst = tmp_path / "oasst.jsonl"
+    oasst.write_text("\n".join(json.dumps(row) for row in messages))
+    out = tmp_path / "release"
+    manifest = build_release(
+        base_seed=9,
+        n_synth=12,
+        n_calibration=6,
+        out_dir=str(out),
+        oasst_path=str(oasst),
+        oasst_revision="pinned",
+        require_final_gold=False,
+    )
+    assert manifest["mixture"]["general_fraction_target"] == 0.30
+    total = (
+        manifest["reconciliation_train_rows"] + manifest["general_train_rows"]
+    )
+    assert abs(manifest["general_train_rows"] / total - 0.30) < 0.02
+    assert manifest["calibration_fit_count"] == 4
+    assert manifest["calibration_threshold_count"] == 2
+    assert manifest["split_leakage_errors"] == []
+    assert manifest["synthetic_rendered_row_count"] == 24
+    synthetic_rows = [
+        json.loads(line)
+        for line in (out / "train.jsonl").read_text().splitlines()
+        if json.loads(line).get("provenance") == "synthetic"
+    ]
+    assert len(synthetic_rows) == 24
+    assert all(
+        {row["format"] for row in synthetic_rows if row["case_id"] == case_id}
+        == {"app", "chat"}
+        for case_id in {row["case_id"] for row in synthetic_rows}
+    )
+    second_out = tmp_path / "release-again"
+    second = build_release(
+        base_seed=9,
+        n_synth=12,
+        n_calibration=6,
+        out_dir=str(second_out),
+        oasst_path=str(oasst),
+        oasst_revision="pinned",
+        require_final_gold=False,
+    )
+    assert second["files"] == manifest["files"]

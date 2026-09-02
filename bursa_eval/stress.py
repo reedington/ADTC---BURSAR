@@ -27,11 +27,13 @@ def run_distinct(
     tokenizer_path: str,
     n: int = 1000,
     seed: int = 20260726,
+    confidence_policy: ModelConfidencePolicy | None = None,
 ) -> dict:
     gold = [load_case(path) for path in sorted(glob.glob("data/gold/*.yaml"))]
     cases = generate(seed, n, mix=MODEL_ONLY_MIX, gold=gold)
     valid = unsupported = thinking = transport = incorrect_auto_posts = 0
     records = []
+    policy = confidence_policy or ModelConfidencePolicy()
     for input_index, case in enumerate(cases, start=1):
         conn = loader.materialize(case)
         try:
@@ -58,12 +60,30 @@ def run_distinct(
                     result.chosen_id,
                     budget_shed=result.budget_shed,
                 )
-                would_auto = (
-                    ModelConfidencePolicy().route(feature_values).value == "auto"
-                    and result.data.get("recommended_action") == "auto"
-                    and result.dry_ok
+                allocated = sum(
+                    allocation["amount_minor"]
+                    for allocation in result.data.get("candidate_allocations", [])
                 )
-            incorrect_auto_posts += int(would_auto and case.expected.outcome != "auto")
+                would_auto = (
+                    policy.route(feature_values).value == "auto"
+                    and result.dry_ok
+                    and not result.budget_shed
+                    and bool(result.data.get("candidate_allocations", []))
+                    and allocated == txn["amount_minor"]
+                )
+            expected_events = {
+                (event.student_id, event.charge_id, event.amount_minor)
+                for event in loader.build_expected_events(conn, case, txn_id)
+                if event.event_type.value == "allocation"
+            }
+            actual_events = {
+                (event.student_id, event.charge_id, event.amount_minor)
+                for event in result.model_events
+                if event.event_type.value == "allocation"
+            }
+            incorrect_auto_posts += int(
+                would_auto and actual_events != expected_events
+            )
             records.append({
                 "input_id": f"input-{input_index:04d}",
                 "case_id": case.id,
@@ -107,12 +127,23 @@ def main(argv=None) -> int:
     parser.add_argument("--seed", type=int, default=20260726)
     parser.add_argument("--base-url", default="http://127.0.0.1:8080")
     parser.add_argument("--output", required=True)
+    parser.add_argument("--calibration")
+    parser.add_argument("--model")
     args = parser.parse_args(argv)
+    policy = ModelConfidencePolicy()
+    if args.calibration:
+        if not args.model:
+            parser.error("--model is required with --calibration")
+        from bursa_eval.repro import sha256_file
+        policy = ModelConfidencePolicy.from_file(
+            args.calibration, expected_model_sha256=sha256_file(args.model)
+        )
     summary = run_distinct(
         LlamaServerBackend(args.base_url),
         args.tokenizer,
         n=args.n,
         seed=args.seed,
+        confidence_policy=policy,
     )
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
