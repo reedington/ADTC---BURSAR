@@ -1,6 +1,6 @@
 # Bursa
 
-**Offline AI reconciliation copilot for African school fees** — Africa Deep Tech Challenge 2026, Corporate/Enterprise track.
+**Offline AI reconciliation copilot for African school fees**
 
 Bursa turns messy bank statements and payment evidence into an accurate, auditable student-fee ledger on an ordinary school laptop — fully offline. It pairs a locally-run language model (interprets ambiguous narrations, ranks candidate students) with deterministic matching and a financial constraint engine that owns all arithmetic. The model **never** writes to the ledger.
 
